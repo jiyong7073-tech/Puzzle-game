@@ -54,6 +54,16 @@ header{display:grid;grid-template-columns:56px 1fr 56px;align-items:center;
 .dialog canvas{align-self:center;max-width:200px;width:100%;border-radius:12px;image-rendering:pixelated}
 .btn{padding:13px;border-radius:14px;font-weight:800;background:var(--slot)}
 .btn.primary{background:var(--go);color:#fff;box-shadow:0 4px 0 var(--go-edge)}
+.dialog.wide{width:min(560px,100%);max-height:86vh}
+.lvgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(92px,1fr));gap:10px;overflow-y:auto;min-height:0;padding:4px}
+.lvtile{display:flex;flex-direction:column;align-items:center;gap:4px;padding:10px 6px;border-radius:16px;background:var(--slot)}
+.lvtile:active{transform:scale(.96)}
+.lvtile.now{outline:3px solid var(--go)}
+.lvtile canvas{width:64px;height:64px;object-fit:contain;image-rendering:pixelated;border-radius:6px}
+.lvtile b{font-size:14px}
+.lvtile span{font-size:11px;font-weight:700;color:var(--muted)}
+.lvtile span.cur{color:var(--go-edge)}
+.btn:focus-visible,.gear:focus-visible,.lvtile:focus-visible{outline:3px solid var(--muted);outline-offset:2px}
 @keyframes fade{from{opacity:0}}
 @keyframes pop{from{transform:scale(.85);opacity:0}}
 </style>
@@ -65,7 +75,9 @@ header{display:grid;grid-template-columns:56px 1fr 56px;align-items:center;
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
     </button>
     <div class="lv"><b id="lvText">레벨 1</b><span id="pctText"></span></div>
-    <span></span>
+    <button class="gear" id="levelsBtn" aria-label="레벨 선택">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linejoin="round"><rect x="4" y="4" width="6.5" height="6.5" rx="1.5"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.5"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.5"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.5"/></svg>
+    </button>
   </header>
   <div class="stage" id="stage">
     <canvas id="cv"></canvas>
@@ -77,8 +89,18 @@ header{display:grid;grid-template-columns:56px 1fr 56px;align-items:center;
   <div class="dialog">
     <h2>설정</h2>
     <button class="btn" id="soundBtn">소리 켜짐</button>
+    <button class="btn" id="menuLevels">레벨 선택</button>
     <button class="btn" id="restartBtn">이 레벨 다시 시작</button>
     <button class="btn primary" id="closeMenu">계속하기</button>
+  </div>
+</div>
+
+<div class="overlay" id="levels">
+  <div class="dialog wide">
+    <h2>레벨 선택</h2>
+    <p id="levelsInfo"></p>
+    <div class="lvgrid" id="levelGrid"></div>
+    <button class="btn primary" id="closeLevels">닫기</button>
   </div>
 </div>
 
@@ -88,6 +110,7 @@ header{display:grid;grid-template-columns:56px 1fr 56px;align-items:center;
     <p id="clearName"></p>
     <canvas id="clearThumb"></canvas>
     <button class="btn primary" id="nextBtn">다음 레벨</button>
+    <button class="btn" id="clearLevels">레벨 선택</button>
   </div>
 </div>
 
@@ -326,8 +349,17 @@ function scramble(P, lv){
 
 /* ========================= 저장 ========================= */
 const SAVE_KEY = 'gem-mosaic-sort-v1';
-let save = { level:1, sound:true, state:null };
-try { const s = JSON.parse(localStorage.getItem(SAVE_KEY)); if (s && s.level) save = Object.assign(save, s); } catch (e) {}
+// level: 지금까지 열린 가장 높은 레벨, last: 마지막으로 하던 레벨, states: 레벨별 진행 중인 판
+let save = { level:1, last:1, sound:true, states:{} };
+try {
+  const s = JSON.parse(localStorage.getItem(SAVE_KEY));
+  if (s && s.level){
+    save = Object.assign(save, s);
+    if (s.state){ save.states[s.state.lv] = s.state; delete save.state; }   // 이전 저장 형식
+    save.states = save.states || {};
+    save.last = clamp(save.last || save.level, 1, save.level);
+  }
+} catch (e) {}
 let saveTimer = 0;
 function persist(now){
   clearTimeout(saveTimer);
@@ -336,7 +368,10 @@ function persist(now){
 }
 function snapshot(){
   if (!G || G.done) return;
-  save.state = { lv:G.lv, gem:Array.from(G.gem), box:G.box.map(b => b.c), cap:G.cap, doneColors:[...G.doneColors] };
+  save.states[G.lv] = { lv:G.lv, gem:Array.from(G.gem), box:G.box.map(b => b.c), cap:G.cap, doneColors:[...G.doneColors] };
+  // 현재 도전 중인 최고 레벨과 지금 하는 레벨의 판만 보관
+  for (const k of Object.keys(save.states)) if (+k !== save.level && +k !== G.lv) delete save.states[k];
+  save.last = G.lv;
   persist();
 }
 
@@ -412,9 +447,11 @@ function readTheme(){
 }
 
 function startLevel(lv, fresh){
-  const P = BUILT[(lv - 1) % BUILT.length];
   let gem, box = [], cap = BASE_CAP, doneColors = null;
-  const st = save.state;
+  lv = clamp(lv | 0, 1, save.level);
+  const P = BUILT[(lv - 1) % BUILT.length];
+  const st = save.states[lv];
+  if (fresh) delete save.states[lv];
   if (!fresh && st && st.lv === lv && st.gem && st.gem.length === P.w*P.h && !st.gem.every((v, i) => v === P.target[i])){
     gem = Int16Array.from(st.gem); box = st.box || []; cap = clamp(st.cap || BASE_CAP, BASE_CAP, MAX_CAP);
     doneColors = st.doneColors || null;
@@ -422,9 +459,10 @@ function startLevel(lv, fresh){
   G = { lv, P, gem, hidden:new Uint8Array(P.w*P.h), box: box.map(c => ({ id:nextId++, c })), cap, sel:null, done:false };
   // 처음부터 완성돼 있던 색(테두리 등)은 보상 대상에서 제외
   G.doneColors = new Set(doneColors || P.colors.map((_, c) => c).filter(c => colorComplete(c)));
-  save.level = lv; pos.clear(); flyers = []; pops.clear(); errs.clear(); particles = []; shineAt = 0; celebrated = false;
+  save.last = lv; pos.clear(); flyers = []; pops.clear(); errs.clear(); particles = []; shineAt = 0; celebrated = false;
   spriteCache = { px:0, map:new Map() };
   $('lvText').textContent = `레벨 ${lv}`;
+  $('levels').classList.remove('show'); $('menu').classList.remove('show');
   $('clear').classList.remove('show');
   layout(); updatePct(); snapshot(); draw();
 }
@@ -546,7 +584,11 @@ function fillAt(i){
       tone(784, .12, .05, 'sine', .3); tone(1175, .16, .05, 'sine', .4);
     }
   }
-  if (G.gem.every((v, j) => v === P.target[j])){ G.done = true; save.state = null; save.level = G.lv + 1; persist(true); }
+  if (G.gem.every((v, j) => v === P.target[j])){
+    G.done = true; delete save.states[G.lv];
+    if (G.lv >= save.level) save.level = G.lv + 1;
+    save.last = G.lv + 1; persist(true);
+  }
   else snapshot();
   updatePct(); draw();
 }
@@ -752,13 +794,47 @@ $('gearBtn').onclick = () => { syncSound(); $('menu').classList.add('show'); };
 $('closeMenu').onclick = () => $('menu').classList.remove('show');
 $('soundBtn').onclick = () => { save.sound = !save.sound; persist(true); syncSound(); };
 $('restartBtn').onclick = () => { $('menu').classList.remove('show'); startLevel(G.lv, true); };
-$('nextBtn').onclick = () => startLevel(G.lv + 1, true);
+$('nextBtn').onclick = () => startLevel(G.lv + 1, false);
+$('clearLevels').onclick = () => { $('clear').classList.remove('show'); openLevels(); };
+$('levelsBtn').onclick = () => openLevels();
+$('menuLevels').onclick = () => { $('menu').classList.remove('show'); openLevels(); };
+$('closeLevels').onclick = () => $('levels').classList.remove('show');
+
+/* ---------- 레벨 선택 ---------- */
+function picThumb(P, done){
+  const s = Math.max(2, Math.floor(72 / Math.max(P.w, P.h)));
+  const cv = document.createElement('canvas'); cv.width = P.w*s; cv.height = P.h*s;
+  const g = cv.getContext('2d');
+  for (let i = 0; i < P.target.length; i++){
+    const c = P.colors[P.target[i]].rgb;
+    if (done) g.fillStyle = rgba(c);
+    else { const l = Math.round(150 + (0.299*c[0] + 0.587*c[1] + 0.114*c[2]) * .35); g.fillStyle = `rgb(${l},${l},${l + 8})`; }
+    g.fillRect((i % P.w)*s, ((i / P.w) | 0)*s, s, s);
+  }
+  return cv;
+}
+function openLevels(){
+  const grid = $('levelGrid'); grid.innerHTML = '';
+  $('levelsInfo').textContent = `클리어 ${save.level - 1}개 · 지금 레벨 ${save.level}`;
+  for (let n = save.level; n >= 1; n--){
+    const cleared = n < save.level, P = BUILT[(n - 1) % BUILT.length];
+    const b = document.createElement('button'); b.className = 'lvtile' + (G && G.lv === n ? ' now' : '');
+    b.appendChild(picThumb(P, cleared));
+    const tag = !cleared ? '도전 중' : save.states[n] ? '이어하기' : '클리어';
+    b.insertAdjacentHTML('beforeend', `<b>레벨 ${n}</b><span class="${cleared ? 'ok' : 'cur'}">${tag}</span>`);
+    b.setAttribute('aria-label', `레벨 ${n} ${tag}`);
+    b.onclick = () => startLevel(n, false);
+    grid.appendChild(b);
+  }
+  $('levels').classList.add('show');
+}
 
 new ResizeObserver(() => layout()).observe($('stage'));
 matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => { readTheme(); draw(); });
-document.addEventListener('visibilitychange', () => { if (document.hidden) persist(true); });
+document.addEventListener('visibilitychange', () => { if (document.hidden){ if (G && !G.done) snapshot(); persist(true); } });
+window.addEventListener('pagehide', () => persist(true));
 readTheme();
-startLevel(save.level || 1, false);
+startLevel(save.last || save.level || 1, false);
 </script>
 </body>
 </html>
