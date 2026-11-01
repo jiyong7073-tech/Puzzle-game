@@ -42,7 +42,7 @@ header{display:grid;grid-template-columns:56px 1fr 56px;align-items:center;
 #cv{position:absolute;inset:0;width:100%;height:100%;touch-action:none;display:block}
 .toast{position:absolute;left:50%;top:8px;transform:translate(-50%,-14px);opacity:0;background:var(--card);
   box-shadow:var(--shadow);border-radius:999px;padding:8px 16px;font-size:14px;font-weight:700;pointer-events:none;
-  transition:opacity .25s,transform .25s;white-space:nowrap;z-index:3}
+  transition:opacity .25s,transform .25s;width:max-content;max-width:calc(100% - 32px);text-align:center;line-height:1.35;z-index:3}
 .toast.show{opacity:1;transform:translate(-50%,0)}
 .overlay{position:fixed;inset:0;background:rgba(20,10,40,.45);display:none;align-items:center;justify-content:center;
   z-index:10;padding:16px;backdrop-filter:blur(3px)}
@@ -67,6 +67,13 @@ header{display:grid;grid-template-columns:56px 1fr 56px;align-items:center;
 .fit{position:absolute;right:max(12px,env(safe-area-inset-right));top:8px;width:40px;height:40px;border-radius:12px;
   background:var(--btn);box-shadow:0 3px 0 var(--btn-edge);color:#fff;display:flex;align-items:center;justify-content:center;z-index:2}
 .fit svg{width:22px;height:22px}
+.savebox{display:flex;flex-direction:column;gap:8px;padding:12px;border-radius:14px;background:var(--slot);text-align:left}
+.savestate{margin:0;font-size:13px;color:var(--muted);line-height:1.4}
+.savestate.warn{color:#d9480f;font-weight:700}
+.coderow{display:flex;align-items:center;gap:8px;font-size:13px}
+.coderow b{flex:1;font-family:ui-monospace,Menlo,monospace;font-size:16px;letter-spacing:.04em;user-select:all;-webkit-user-select:all}
+.coderow input{flex:1;min-width:0;padding:10px;border-radius:10px;border:2px solid var(--panel-edge);background:var(--card);color:var(--text);font:inherit;font-size:16px}
+.btn.small{padding:9px 12px;font-size:13px;background:var(--card)}
 @keyframes fade{from{opacity:0}}
 @keyframes pop{from{transform:scale(.85);opacity:0}}
 </style>
@@ -97,6 +104,11 @@ header{display:grid;grid-template-columns:56px 1fr 56px;align-items:center;
     <button class="btn" id="soundBtn">소리 켜짐</button>
     <button class="btn" id="menuLevels">레벨 선택</button>
     <button class="btn" id="restartBtn">이 레벨 다시 시작</button>
+    <div class="savebox">
+      <p class="savestate" id="saveState"></p>
+      <div class="coderow"><span>진행 코드</span><b id="codeText">GEM-0001-K</b><button class="btn small" id="copyCode">복사</button></div>
+      <div class="coderow"><input id="codeInput" placeholder="진행 코드 입력" autocomplete="off" autocapitalize="characters" aria-label="진행 코드 입력"><button class="btn small" id="applyCode">불러오기</button></div>
+    </div>
     <button class="btn primary" id="closeMenu">계속하기</button>
   </div>
 </div>
@@ -1109,6 +1121,9 @@ try {
   }
 } catch (e) {}
 let saveTimer = 0;
+// 이 브라우저가 실제로 저장을 해주는지 확인 (앱 내장 브라우저·차단 설정에서는 막힐 수 있음)
+const storageOK = (() => { try { const k = SAVE_KEY + '-test', v = String(Date.now());
+  localStorage.setItem(k, v); const ok = localStorage.getItem(k) === v; localStorage.removeItem(k); return ok; } catch (e) { return false; } })();
 function persist(now){
   clearTimeout(saveTimer);
   const run = () => { try { localStorage.setItem(SAVE_KEY, JSON.stringify(save)); } catch (e) {} };
@@ -1657,7 +1672,35 @@ matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => { re
 document.addEventListener('visibilitychange', () => { if (document.hidden){ if (G && !G.done) snapshot(); persist(true); } });
 window.addEventListener('pagehide', () => persist(true));
 readTheme();
+/* ---------- 진행 코드: 저장이 날아가도 도달한 레벨을 되찾기 ---------- */
+const codeSum = n => 'ABCDEFGHJKMNPQRSTUVWXYZ'[(n*7 + 3) % 23];
+const makeCode = n => `GEM-${String(n).padStart(4, '0')}-${codeSum(n)}`;
+function readCode(text){
+  const m = String(text).toUpperCase().replace(/\s/g, '').match(/^GEM-?(\d{1,5})-?([A-Z])$/);
+  if (!m) return 0; const n = +m[1]; return n >= 1 && codeSum(n) === m[2] ? n : 0;
+}
+function syncSaveInfo(){
+  $('saveState').textContent = storageOK ? '✓ 진행 상황이 이 기기에 자동 저장되고 있어요' : '⚠ 이 브라우저에서는 저장이 안 돼요. 아래 진행 코드를 꼭 적어두세요';
+  $('saveState').className = 'savestate' + (storageOK ? '' : ' warn');
+  $('codeText').textContent = makeCode(save.level);
+}
+$('copyCode').onclick = () => {
+  const code = makeCode(save.level);
+  const done = () => toast('진행 코드를 복사했어요');
+  try { navigator.clipboard.writeText(code).then(done, () => selectCode()); } catch (e) { selectCode(); }
+};
+function selectCode(){ const r = document.createRange(); r.selectNodeContents($('codeText')); const sel = getSelection(); sel.removeAllRanges(); sel.addRange(r); toast('코드를 길게 눌러 복사하세요'); }
+$('applyCode').onclick = () => {
+  const n = readCode($('codeInput').value);
+  if (!n){ toast('코드를 다시 확인해 주세요'); sfx.bad(); return; }
+  if (n <= save.level){ toast(`이미 레벨 ${save.level}까지 열려 있어요`); return; }
+  save.level = n; persist(true); $('codeInput').value = '';
+  startLevel(n, false); toast(`레벨 ${n}까지 불러왔어요`);
+};
+$('gearBtn').addEventListener('click', syncSaveInfo);
+
 startLevel(save.last || save.level || 1, false);
+if (!storageOK) setTimeout(() => toast('이 브라우저는 저장이 안 돼요. 설정에서 진행 코드를 확인하세요'), 600);
 </script>
 </body>
 </html>
