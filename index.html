@@ -1167,32 +1167,29 @@ const sfx = {
 };
 
 /* ========================= 보석 스프라이트 ========================= */
-// 육각형 꼭짓점 (위쪽이 뾰족한 형태, 칸을 꽉 채우도록 가로로 살짝 넓힘)
-function hexPts(cx, cy, R, sx = 1.08){
-  const p = [];
-  for (let k = 0; k < 6; k++){ const a = -Math.PI/2 + k*Math.PI/3; p.push([cx + Math.cos(a)*R*sx, cy + Math.sin(a)*R]); }
-  return p;
-}
 function makeGem(rgb, s){
   const cv = document.createElement('canvas'); cv.width = cv.height = s;
   const g = cv.getContext('2d');
-  const cx = s/2, cy = s/2, R = s*0.47;
+  const cx = s/2, cy = s/2, R = s*0.46 / Math.cos(Math.PI/8);
+  const oct = (rad, ox = 0, oy = 0) => { const p = [];
+    for (let k = 0; k < 8; k++){ const a = Math.PI/8 + k*Math.PI/4; p.push([cx + ox + Math.cos(a)*rad, cy + oy + Math.sin(a)*rad]); }
+    return p; };
   const path = p => { g.beginPath(); p.forEach(([x, y], i) => i ? g.lineTo(x, y) : g.moveTo(x, y)); g.closePath(); };
-  path(hexPts(cx, cy + s*0.045, R)); g.fillStyle = rgba(darken(rgb, .55), .55); g.fill();       // 바닥 그림자
-  const outer = hexPts(cx, cy, R);
-  path(outer); g.fillStyle = rgba(darken(rgb, .22)); g.fill();                                   // 베벨
-  const inner = hexPts(cx, cy - s*0.015, R*0.62);
-  for (let k = 0; k < 6; k++){
-    const a = -Math.PI/2 + (k + .5)*Math.PI/3, light = -(Math.cos(a)*.5 + Math.sin(a)) / 1.12;  // 왼쪽 위에서 오는 빛
-    path([outer[k], outer[(k + 1) % 6], inner[(k + 1) % 6], inner[k]]);
-    g.fillStyle = light > 0 ? `rgba(255,255,255,${.38*light})` : `rgba(0,0,0,${-.2*light})`; g.fill();
+  path(oct(R, 0, s*0.05)); g.fillStyle = rgba(darken(rgb, .55), .55); g.fill();             // 바닥 그림자
+  const outer = oct(R);
+  path(outer); g.fillStyle = rgba(darken(rgb, .22)); g.fill();                                  // 베벨
+  const inner = oct(R*0.66, 0, -s*0.02);
+  for (let k = 0; k < 8; k++){
+    const a = Math.PI/4 + k*Math.PI/4, light = -(Math.cos(a)*.5 + Math.sin(a)) / 1.12;
+    path([outer[k], outer[(k + 1) % 8], inner[(k + 1) % 8], inner[k]]);
+    g.fillStyle = light > 0 ? `rgba(255,255,255,${.35*light})` : `rgba(0,0,0,${-.18*light})`; g.fill();
   }
-  const tg = g.createLinearGradient(0, cy - R*.6, 0, cy + R*.6);
+  const tg = g.createLinearGradient(0, cy - R, 0, cy + R);
   tg.addColorStop(0, rgba(lighten(rgb, .35))); tg.addColorStop(1, rgba(rgb));
-  path(inner); g.fillStyle = tg; g.fill();                                                        // 윗면
+  path(inner); g.fillStyle = tg; g.fill();                                                       // 윗면
   g.lineWidth = Math.max(.6, s*.025); g.strokeStyle = rgba(darken(rgb, .45), .6); path(outer); g.stroke();
   g.fillStyle = 'rgba(255,255,255,.75)';
-  g.beginPath(); g.ellipse(cx - R*.22, cy - R*.3, R*.15, R*.07, -.5, 0, Math.PI*2); g.fill();  // 하이라이트
+  g.beginPath(); g.ellipse(cx - R*.28, cy - R*.34, R*.17, R*.08, -.5, 0, Math.PI*2); g.fill(); // 하이라이트
   return cv;
 }
 let spriteCache = { px:0, map:new Map() };
@@ -1512,8 +1509,8 @@ function render(now){
     const g = G.gem[i];
     if (g === -1 || G.hidden[i]){
       // 빈 홈
-      const hp = hexPts(X + cs/2, Y + cs/2, cs*.36);
-      ctx.beginPath(); hp.forEach(([hx, hy], k) => k ? ctx.lineTo(hx, hy) : ctx.moveTo(hx, hy)); ctx.closePath();
+      const ins = cs*.16;
+      rr(X + ins, Y + ins, cs - ins*2, cs - ins*2, cs*.2);
       ctx.fillStyle = col.socket; ctx.fill();
       ctx.lineWidth = Math.max(1, cs*.06); ctx.strokeStyle = col.socketEdge; ctx.stroke();
     } else {
