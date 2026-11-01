@@ -275,9 +275,573 @@ const PICS = [
       }
       return rows;
     }},
+  /* ---------- 10레벨부터: 추가 그림 ---------- */
+  { name:'수박 한 조각', bg:'#bfe9ff', frame:'#ff8fc0',
+    palette:{ G:'#2e8b3e', L:'#8ee05e', W:'#f4ffe8', R:'#ef3b4f', K:'#2d2d3a' },
+    art:[
+      'GLWRRRRRRRRRRRRWLG',
+      'GLWRKRRRRKRRRRRWLG',
+      '.GLWRRRRRRRRKRWLG.',
+      '.GLWRRKRRRRRRRWLG.',
+      '..GLWRRRRRKRRWLG..',
+      '...GLWWRRRRWWLG...',
+      '....GLLWWWWLLG....',
+      '......GGGGGG......' ]},
+  { name:'꼬마 펭귄', bg:'#cdeefd', frame:'#3b82f6',
+    palette:{ K:'#26283a', W:'#ffffff', O:'#fb923c', P:'#ff9fb8' },
+    art:[
+      '.....KKKK.....',
+      '...KKKKKKKK...',
+      '..KKWWKKWWKK..',
+      '..KWWWKKWWWK..',
+      '..KWKWWWWKWK..',
+      '..KPWWOOWWPK..',
+      '.KKWWOOOOWWKK.',
+      'KKKKWWWWWWKKKK',
+      'KK.KWWWWWWK.KK',
+      'K..KWWWWWWK..K',
+      '...KWWWWWWK...',
+      '...KWWWWWWK...',
+      '...KKWWWWKK...',
+      '....KKKKKK....',
+      '...OOO..OOO...' ]},
+  { name:'노을 바다', bg:'#1e3a8a', frame:'#7c3aed',
+    palette:{ V:'#7c3aed', P:'#ff6fae', O:'#fb923c', Y:'#ffd23f', S:'#fff3b0', L:'#3b82f6', B:'#1e3a8a', N:'#0f1b4d' },
+    art(){ return makeArt(24, 18, (x, y) => {
+      if (y < 10){
+        if (Math.hypot(x - 11.5, y - 10) <= 4.6) return 'S';
+        return y < 3 ? 'V' : y < 6 ? 'P' : y < 8 ? 'O' : 'Y';
+      }
+      if (y % 2 === 0 && Math.abs(x - 11.5) < 4.5 - (y - 10)*.45) return 'Y';
+      return y < 12 ? 'L' : y < 15 ? 'B' : 'N';
+    }); }},
+  { name:'화분 선인장', bg:'#fff1c9', frame:'#2bb5a6',
+    palette:{ F:'#ff6fae', G:'#2e9e4f', L:'#8ee05e', D:'#a8461f', T:'#e07a43' },
+    art:[
+      '......FF......',
+      '.....GGGG.....',
+      '.....GLGG.....',
+      '.G...GGGG.....',
+      'GLG..GGLG..G..',
+      'GGG..GGGG.GLG.',
+      'GLG..GLGG.GGG.',
+      'GGGGGGGGG.GLG.',
+      '.GGGGGGLGGGGG.',
+      '.....GGGGGGG..',
+      '.....GLGG.....',
+      '.....GGGG.....',
+      '..DDDDDDDDDD..',
+      '...TTTTTTTT...',
+      '...TTTTTTTT...',
+      '....TTTTTT....' ]},
+  { name:'무당벌레', bg:'#b6f07a', frame:'#2e7d32',
+    palette:{ K:'#26283a', W:'#ffffff', R:'#e53935' },
+    art:[
+      '...K.......K...',
+      '....K.....K....',
+      '.....KKKKK.....',
+      '....KKWKWKK....',
+      '...RRRRKRRRR...',
+      '..RRKKRKRKKRR..',
+      '.RRRKKRKRKKRRR.',
+      '.RRRRRRKRRRRRR.',
+      '.RKKRRRKRRRKKR.',
+      '.RKKRRRKRRRKKR.',
+      '.RRRRRRKRRRRRR.',
+      '..RRRKRKRKRRR..',
+      '...RRRRKRRRR...',
+      '.....RRKRR.....' ]},
+  { name:'아이스크림', bg:'#d8ecff', frame:'#ff8fc0',
+    palette:{ R:'#e11d48', P:'#ff9fc8', W:'#ffffff', M:'#6ee0bf', K:'#5b3a29', C:'#e9b06a', D:'#b9783a' },
+    art:[
+      '.....RR.....',
+      '....PPPP....',
+      '...PWPPPP...',
+      '..PPPPPPPP..',
+      '..PPPPPPPP..',
+      '.MMMMMMMMMM.',
+      '.MMKMMMMKMM.',
+      '.MMMMMKMMMM.',
+      '..MMMMMMMM..',
+      '.CCCCCCCCCC.',
+      '.CDCCDCCDCC.',
+      '..CCDCCDCC..',
+      '..CDCCDCCD..',
+      '...CCDCCC...',
+      '...CDCCDC...',
+      '....CCDC....',
+      '....CDCC....',
+      '.....CC.....' ]},
+  { name:'퀼트 무늬', bg:'#ffffff', frame:'#7c3aed',
+    palette:{ A:'#ff6fae', B:'#ffd23f', C:'#3b82f6', D:'#22c55e' },
+    art(){ return makeArt(24, 24, (x, y) => {
+      const k = ((x >> 3) + (y >> 3)) % 2, d = Math.abs((x & 7) - 3.5) + Math.abs((y & 7) - 3.5);
+      return d <= 2 ? (k ? 'A' : 'C') : d <= 4 ? (k ? 'B' : 'D') : (k ? 'C' : 'A');
+    }); }},
+  { name:'빨간 지붕 집', bg:'#bfe9ff', frame:'#ffd23f',
+    palette:{ R:'#d84a3a', C:'#7a4a36', W:'#fff4e0', B:'#4fb3ff', D:'#8a5a2b', Y:'#ffd23f', G:'#4caf50', P:'#d9c3a0' },
+    art:[
+      '..........CC....',
+      '.......R..CC....',
+      '......RRR.CC....',
+      '.....RRRRRCC....',
+      '....RRRRRRRR....',
+      '...RRRRRRRRRR...',
+      '..RRRRRRRRRRRR..',
+      '.RRRRRRRRRRRRRR.',
+      '..WWWWWWWWWWWW..',
+      '..WBBWWWWWWBBW..',
+      '..WBBWWDDWWBBW..',
+      '..WWWWWDDWWWWW..',
+      '..WWWWWDYWWWWW..',
+      '..WWWWWDDWWWWW..',
+      'GGGGGGGPPGGGGGGG',
+      'GGGGGGPPPPGGGGGG' ]},
+  { name:'사과나무', bg:'#cfeeff', frame:'#8a5a2b',
+    palette:{ G:'#2e9e4f', L:'#9be36b', R:'#e53935', N:'#8a5a2b', B:'#e8c886' },
+    art:[
+      '.....GGGGGG.....',
+      '...GGGGGGGGGG...',
+      '..GGLGGGGGLGGG..',
+      '.GGGGGGRGGGGGGG.',
+      '.GGLGGGGGGGRGGG.',
+      'GGGGGRGGGLGGGGGG',
+      'GGRGGGGGGGGGGLGG',
+      '.GGGGLGGGRGGGGG.',
+      '.GGGGGGGGGGGGGG.',
+      '..GGGGGNNGGGGG..',
+      '....GGGNNGGG....',
+      '.......NN.......',
+      '.......NN.......',
+      '......NNNN......',
+      'BBBBBBBBBBBBBBBB' ]},
+  { name:'웃는 별', bg:'#1e2a5a', frame:'#8b5cf6',
+    palette:{ Y:'#ffd23f', W:'#fff7c2', K:'#26283a', P:'#ff7aa8' },
+    art:[
+      '.......Y.......',
+      '......YYY......',
+      '......YWY......',
+      '.....YYWYY.....',
+      'YYYYYYYYYYYYYYY',
+      '.YYYYYYYYYYYYY.',
+      '..YYYYYYYYYYY..',
+      '...YYKYYYKYY...',
+      '...YYYYYYYYY...',
+      '..YPYYKKKYYPY..',
+      '..YYYYYYYYYYY..',
+      '.YYYYY...YYYYY.',
+      '.YYYY.....YYYY.',
+      'YYY.........YYY',
+      'Y.............Y' ]},
+  { name:'설산 풍경', bg:'#bfe9ff', frame:'#5b6478',
+    palette:{ C:'#bfe9ff', Y:'#ffd23f', W:'#ffffff', G:'#8892a8', D:'#5b6478', F:'#2e9e4f', L:'#8ee05e', B:'#2b7de9' },
+    art(){ return makeArt(24, 18, (x, y) => {
+      if (Math.hypot(x - 3.5, y - 3) <= 2.2) return 'Y';
+      if (y >= 15) return (x >= 5 && x <= 18) ? 'B' : 'L';
+      if (y >= 13) return 'F';
+      const m1 = y >= 2 + Math.abs(x - 8)*0.95, m2 = y >= 4 + Math.abs(x - 17)*0.85;
+      if (m1) return y < 5 + (x % 2) ? 'W' : 'G';
+      if (m2) return y < 7 + (x % 2) ? 'W' : 'D';
+      if ((y === 1 || y === 2) && x >= 13 && x <= 19 && !(y === 1 && (x === 13 || x === 19))) return 'W';
+      return 'C';
+    }); }},
+  { name:'우주 로켓', bg:'#1b1f5e', frame:'#a78bfa',
+    palette:{ R:'#ef4444', W:'#eef2f7', B:'#1e3a8a', L:'#7dd3fc', G:'#94a3b8', K:'#334155', O:'#fb923c', Y:'#ffd23f' },
+    art:[
+      '.....RR.....',
+      '....RRRR....',
+      '....WWWW....',
+      '...WWWWWW...',
+      '...WWBBWW...',
+      '...WBLLBW...',
+      '...WBLLBW...',
+      '...WWBBWW...',
+      '...WWWWWW...',
+      '...WWWWWW...',
+      '..RWWWWWWR..',
+      '.RRWWWWWWRR.',
+      'RRRWWGGWWRRR',
+      'RR.WWGGWW.RR',
+      '...KKKKKK...',
+      '....OYYO....',
+      '....OYYO....',
+      '.....OO.....' ]},
+  { name:'연못 개구리', bg:'#bfe9ff', frame:'#2b7de9',
+    palette:{ G:'#43a047', L:'#b6f07a', W:'#ffffff', K:'#26283a', P:'#ff9fb8' },
+    art:[
+      '..WWW......WWW..',
+      '.WWKKW....WKKWW.',
+      '.WWKKW....WKKWW.',
+      '.GWWWGGGGGGWWWG.',
+      'GGGGGGGGGGGGGGGG',
+      'GPPGGGGGGGGGGPPG',
+      'GGKGGGGGGGGGGKGG',
+      'GGGKKKKKKKKKKGGG',
+      '.GGGGGGGGGGGGGG.',
+      '..LLLLLLLLLLLL..',
+      '.GLLLLLLLLLLLLG.',
+      'GGGG.LLLLLL.GGGG',
+      'GG..........GG..' ]},
+  { name:'꽃 만다라', bg:'#fff4e0', frame:'#9f1239',
+    palette:{ A:'#ffd23f', B:'#fb923c', C:'#ff6fae', D:'#9f1239', E:'#22c55e', F:'#0f766e' },
+    art(){ return makeArt(25, 25, (x, y) => {
+      const dx = x - 12, dy = y - 12, r = Math.hypot(dx, dy);
+      if (r > 12.3) return '.';
+      const f = r + 1.8*Math.cos(6*Math.atan2(dy, dx))*Math.min(1, r / 5);
+      return 'ABCDEF'[Math.min(5, Math.max(0, Math.floor(f / 2.4)))];
+    }); }},
+  { name:'삐약 병아리', bg:'#c8f08f', frame:'#ff8a3d',
+    palette:{ Y:'#ffd84a', D:'#e8a91a', K:'#26283a', P:'#ff9fb8', O:'#f97316' },
+    art:[
+      '.....YYYY.....',
+      '....YYYYYY....',
+      '...YYYYYYYY...',
+      '...YYKYYKYY...',
+      '...YPYOOYPY...',
+      '...YYYOOYYY...',
+      '..YYYYYYYYYY..',
+      '.YYYYYYYYYYYY.',
+      'YYYDYYYYYYDYYY',
+      '.YYDDYYYYDDYY.',
+      '..YYYYYYYYYY..',
+      '...YYYYYYYY...',
+      '....OO..OO....',
+      '...OOO..OOO...' ]},
+  { name:'쌍둥이 체리', bg:'#fff4e0', frame:'#ff8fc0',
+    palette:{ G:'#22a559', L:'#8ee05e', N:'#6b8e23', R:'#e11d48', W:'#ffc2d4', D:'#8f1035' },
+    art:[
+      '.........GGG..',
+      '........GLLG..',
+      '.......NGGG...',
+      '......N.N.....',
+      '.....N...N....',
+      '....N.....N...',
+      '...N......N...',
+      '.RRRR...RRRR..',
+      'RRWRRR.RRWRRR.',
+      'RWRRRR.RWRRRR.',
+      'RRRRRD.RRRRRD.',
+      'RRRRDD.RRRRDD.',
+      '.RRDD...RRDD..' ]},
+  { name:'빨간 사과', bg:'#d9f99d', frame:'#7c4a1e',
+    palette:{ N:'#7c4a1e', G:'#22a559', L:'#8ee05e', R:'#e53935', W:'#ffc2c2', D:'#a3141c' },
+    art:[
+      '.......N......',
+      '.......NGG....',
+      '......NGLLG...',
+      '..RRRRNRRRR...',
+      '.RRWRRRRRRRR..',
+      'RRWWRRRRRRRRR.',
+      'RRWRRRRRRRRRR.',
+      'RRRRRRRRRRRRR.',
+      'RRRRRRRRRRRRD.',
+      'RRRRRRRRRRRDD.',
+      '.RRRRRRRRRDD..',
+      '.RRRRRRRRRDD..',
+      '..RRRR.RRDD...',
+      '...RR...RD....' ]},
+  { name:'소용돌이', bg:'#ffffff', frame:'#1e2a5a',
+    palette:{ A:'#ef4444', B:'#fb923c', C:'#facc15', D:'#22c55e', E:'#3b82f6', F:'#8b5cf6', W:'#ffffff' },
+    art(){ return makeArt(25, 25, (x, y) => {
+      const dx = x - 12, dy = y - 12, r = Math.hypot(dx, dy);
+      if (r > 12.3) return '.';
+      if (r < 1.2) return 'W';
+      const v = (Math.atan2(dy, dx) + Math.PI) / (2*Math.PI) * 6 + r / 2.6;
+      return 'ABCDEF'[((Math.floor(v) % 6) + 6) % 6];
+    }); }},
+  { name:'아기 고래', bg:'#bfe9ff', frame:'#ffd23f',
+    palette:{ B:'#7dd3fc', N:'#3b6fd8', L:'#dbeafe', W:'#ffffff', K:'#26283a', S:'#1e5fc2' },
+    art:[
+      '..............B.B...',
+      '...............B....',
+      '.....NNNNNN....B....',
+      '...NNNNNNNNNN.......',
+      '..NNNNNNNNNNNN....NN',
+      '.NNWKNNNNNNNNNN..NNN',
+      'NNNNNNNNNNNNNNNNNNN.',
+      'NLLLLLLLNNNNNNNNNN..',
+      '.LLLLLLLLLLNNNNNN...',
+      '..LLLLLLLLLLLNN.....',
+      '....LLLLLLLL........',
+      'SSSSSSSSSSSSSSSSSSSS' ]},
+  { name:'튤립 꽃병', bg:'#fff4e0', frame:'#8b5cf6',
+    palette:{ R:'#ef4444', P:'#ff6fae', Y:'#ffd23f', G:'#2e9e4f', L:'#8ee05e', B:'#3b82f6', W:'#ffffff' },
+    art:[
+      '..R.R....P.P..',
+      '..RRR....PPP..',
+      '..RRR.Y.YPPP..',
+      '...R..YYY.P...',
+      '...G..YYY.G...',
+      '...G...Y..G...',
+      '..LG...G..GL..',
+      '..LLG..G.GLL..',
+      '....G..G.G....',
+      '.....G.GG.....',
+      '......GG......',
+      '..BBBBBBBBBB..',
+      '...BBBBBBBB...',
+      '...BWBBBBWB...',
+      '...BBBBBBBB...',
+      '....BBBBBB....' ]},
+  { name:'라테 한 잔', bg:'#ffe9c7', frame:'#6b3f22',
+    palette:{ W:'#cbd5e1', C:'#ffffff', B:'#6b3f22', P:'#ff6fae', S:'#94d2ff' },
+    art:[
+      '.....W..W.......',
+      '....W..W........',
+      '.....W..W.......',
+      '................',
+      '.CCCCCCCCCCC....',
+      '.CBBBBBBBBBC....',
+      '.CCCCCCCCCCCCC..',
+      '.CCCCCPCCCCCC.C.',
+      '.CCCCPPPCCCCC.C.',
+      '.CCCCCPCCCCCCCC.',
+      '..CCCCCCCCCCC...',
+      '...CCCCCCCCC....',
+      'SSSSSSSSSSSSSSS.',
+      '.SSSSSSSSSSSSS..' ]},
+  { name:'물결 무늬', bg:'#ffffff', frame:'#1e3a8a',
+    palette:{ A:'#fef3c7', B:'#a7f3d0', C:'#22d3ee', D:'#3b82f6', E:'#1e3a8a' },
+    art(){ return makeArt(26, 16, (x, y) => {
+      const v = y + 1.6*Math.sin(x / 2.2) + 0.8*Math.sin(x / 1.1 + 1);
+      return 'ABCDE'[clamp(Math.floor((v + 1) / 3.6), 0, 4)];
+    }); }},
+  { name:'보라 나비', bg:'#c8f08f', frame:'#2bb5a6',
+    palette:{ P:'#ff6fae', Y:'#ffd23f', B:'#8b5cf6', W:'#ffffff', K:'#26283a' },
+    art:[
+      '.PPP.........PPP.',
+      'PPYPP.......PPYPP',
+      'PYYYPP.K.K.PPYYYP',
+      'PPYYPPP.K.PPPYYPP',
+      '.PPPPPPPKPPPPPPP.',
+      '..PPPPPPKPPPPPP..',
+      '...PPPPPKPPPPP...',
+      '..BBBBBBKBBBBBB..',
+      '.BBWBBBBKBBBBWBB.',
+      '.BBBBBB.K.BBBBBB.',
+      '..BBBB..K..BBBB..',
+      '...BB...K...BB...' ]},
+  { name:'바닷속 문어', bg:'#3fa9f5', frame:'#f2d38a',
+    palette:{ P:'#b46bd6', L:'#e3b8f5', W:'#ffffff', K:'#26283a' },
+    art:[
+      '.....PPPPPP.....',
+      '...PPPPPPPPPP...',
+      '..PPPPPPPPPPPP..',
+      '..PPLPPPPPPLPP..',
+      '.PPPPPPPPPPPPPP.',
+      '.PPWKPPPPPPWKPP.',
+      '.PPKKPPPPPPKKPP.',
+      '.PPPPPPKKPPPPPP.',
+      '..PPPPPPPPPPPP..',
+      '.PP.PP.PP.PP.PP.',
+      '.PP.PP.PP.PP.PP.',
+      'PP..PP.PP.PP..PP',
+      'P..PP..PP..PP..P',
+      '...P...PP...P...' ]},
+  { name:'달밤', bg:'#1b1f5e', frame:'#ffd23f',
+    palette:{ N:'#1b1f5e', Y:'#fff1a8', W:'#ffffff', G:'#14532d', H:'#22803f' },
+    art(){ const stars = [[14,2],[19,5],[11,7],[3,11],[17,9],[21,1],[8,1]];
+      return makeArt(22, 16, (x, y) => {
+        if (Math.hypot(x - 6, y - 5) <= 4.2 && Math.hypot(x - 8.2, y - 3.8) > 3.6) return 'Y';
+        for (const [sx, sy] of stars) if (Math.abs(x - sx) + Math.abs(y - sy) <= (sx % 2 ? 1 : 0)) return 'W';
+        if (y >= 13 + Math.sin(x / 2.5)*0.8) return 'H';
+        if (y >= 10 + Math.sin(x / 3 + 1)*1.4) return 'G';
+        return 'N';
+      }); }},
+  { name:'하얀 토끼', bg:'#bfe9ff', frame:'#ff8fc0',
+    palette:{ W:'#ffffff', P:'#ff9fb8', K:'#26283a', R:'#ef4444' },
+    art:[
+      '...WW....WW...',
+      '..WPPW..WPPW..',
+      '..WPPW..WPPW..',
+      '..WPPW..WPPW..',
+      '..WWWW..WWWW..',
+      '..WWWWWWWWWW..',
+      '.WWWWWWWWWWWW.',
+      '.WWKWWWWWWKWW.',
+      '.WWWWWWWWWWWW.',
+      '.WPWWWPPWWWPW.',
+      '.WWWWWKKWWWWW.',
+      '..WWWWWWWWWW..',
+      '...WWWWWWWW...',
+      '....RRKKRR....',
+      '...RRR..RRR...' ]},
+  { name:'곰돌이', bg:'#d9f99d', frame:'#c2410c',
+    palette:{ N:'#9a6234', L:'#e8c89a', K:'#26283a', P:'#ff9fb8' },
+    art:[
+      '.NNN........NNN.',
+      'NNLNN......NNLNN',
+      'NNLNNNNNNNNNNLNN',
+      '.NNNNNNNNNNNNNN.',
+      '.NNNNNNNNNNNNNN.',
+      'NNNKNNNNNNNNKNNN',
+      'NNNNNNNNNNNNNNNN',
+      'NNNNNLLLLLLNNNNN',
+      'NNNNLLLKKLLLNNNN',
+      'NNNNLLLKKLLLNNNN',
+      'NPPNLLLLLLLLNPPN',
+      '.NNNLLKLLKLLNNN.',
+      '..NNNLLKKLLNNN..',
+      '...NNNNNNNNNN...' ]},
+  { name:'하트 물결', bg:'#fff4e0', frame:'#9f1239',
+    palette:{ A:'#9f1239', B:'#e11d48', C:'#ff6fae', D:'#ffc2d4', E:'#fb923c', F:'#ffd23f' },
+    art(){ const heart = (u, v) => Math.pow(u*u + v*v - 1, 3) - u*u*v*v*v;
+      return makeArt(21, 19, (x, y) => {
+        const X = (x - 10) / 7.6, Y = (8.5 - y) / 7.6 + 0.1;
+        for (let k = 1; k <= 6; k++){ const s = k / 6 * 1.18; if (heart(X / s, Y / s) <= 0) return 'FEDCBA'[k - 1]; }
+        return '.';
+      }); }},
+  { name:'딸기', bg:'#fff4e0', frame:'#2bb5a6',
+    palette:{ G:'#2e9e4f', L:'#8ee05e', R:'#ef3b4f', Y:'#ffe066' },
+    art:[
+      '.....G..G.....',
+      '....GGGGGG....',
+      '...GGLGGLGG...',
+      '..RRRGGGGRRR..',
+      '.RRYRRRRRRYRR.',
+      '.RRRRRYRRRRRR.',
+      'RRYRRRRRRYRRRR',
+      'RRRRRYRRRRRRYR',
+      '.RRYRRRRYRRRR.',
+      '.RRRRRRRRRYRR.',
+      '..RRYRRRRRRR..',
+      '..RRRRRYRRR...',
+      '...RRYRRRR....',
+      '....RRRRR.....',
+      '.....RRR......' ]},
+  { name:'해바라기', bg:'#bfe9ff', frame:'#2e9e4f',
+    palette:{ N:'#6b3f22', D:'#a0652e', Y:'#ffd23f', O:'#f59e0b', G:'#2e9e4f', L:'#8ee05e', B:'#c8a46a', M:'#f6e7b0' },
+    art(){ return makeArt(21, 25, (x, y) => {
+      const dx = x - 10, dy = y - 8, r = Math.hypot(dx, dy), a = Math.atan2(dy, dx);
+      if (r <= 3.4) return (x + y) % 2 ? 'N' : 'D';
+      if (r <= 6.4 + 1.1*Math.cos(12*a)) return Math.floor((a + Math.PI) / (2*Math.PI) * 12) % 2 ? 'Y' : 'O';
+      if (y >= 23) return 'B';
+      if (y > 14 && (x === 10 || x === 11)) return 'G';
+      if (y >= 17 && y <= 19 && x >= 12 && x <= 15 - (y - 17)) return 'L';
+      if (y >= 19 && y <= 21 && x <= 9 && x >= 6 + (y - 19)) return 'L';
+      return y >= 14 ? 'M' : '.';
+    }); }},
+  { name:'파인애플', bg:'#bfe9ff', frame:'#ff6fae',
+    palette:{ G:'#2e9e4f', L:'#8ee05e', Y:'#ffcc33', O:'#d98a1c' },
+    art:[
+      '.....G......',
+      '...G.GG.G...',
+      '....GGGGG...',
+      '..GGLGGLGG..',
+      '...GGGGGG...',
+      '..YYYYYYYY..',
+      '.YOYYOYYOYY.',
+      '.YYOYYOYYOY.',
+      'YOYYOYYOYYOY',
+      'YYOYYOYYOYYY',
+      'YYYOYYOYYOYY',
+      'YOYYOYYOYYOY',
+      'YYOYYOYYOYYY',
+      '.YYOYYOYYOY.',
+      '.YOYYOYYOYY.',
+      '..YYYYYYYY..' ]},
+  { name:'밤 부엉이', bg:'#1e2a5a', frame:'#a78bfa',
+    palette:{ N:'#8a5a2b', W:'#ffffff', Y:'#ffd23f', K:'#26283a', O:'#fb923c', L:'#e8c89a', D:'#b4834a' },
+    art:[
+      '.N............N.',
+      '.NN..........NN.',
+      '.NNNNNNNNNNNNNN.',
+      'NNWWWWNNNNWWWWNN',
+      'NWWYYWWNNWWYYWWN',
+      'NWYKKYWNNWYKKYWN',
+      'NWYKKYWOOWYKKYWN',
+      'NWWYYWWOOWWYYWWN',
+      'NNWWWWNNNNWWWWNN',
+      'NNNLLLLLLLLLLNNN',
+      'NNLLDLLDLLDLLLNN',
+      'NNLLLLLLLLLLLLNN',
+      'NNLDLLDLLDLLDLNN',
+      '.NNLLLLLLLLLLNN.',
+      '..NNNNNNNNNNNN..',
+      '....OO....OO....' ]},
+  { name:'반짝 다이아', bg:'#fce7f3', frame:'#a78bfa',
+    palette:{ T:'#e0f2fe', A:'#7dd3fc', B:'#38bdf8', C:'#0284c7', D:'#075985', W:'#ffffff' },
+    art(){ return makeArt(22, 18, (x, y) => {
+      const cx = 10.5;
+      if (y >= 1 && y <= 5){
+        const lo = 6 - (y - 1), hi = 15 + (y - 1);
+        if (x < lo || x > hi) return '.';
+        if (y <= 2 && x >= 7 && x <= 14) return (x === 9 && y === 1) ? 'W' : 'T';
+        const t = (x - lo) / (hi - lo);
+        return t < .33 ? 'A' : t < .66 ? 'B' : 'C';
+      }
+      if (y >= 6 && y <= 16){
+        const hw = 9*(16 - y)/10 + 0.5;
+        if (Math.abs(x - cx) > hw) return '.';
+        const t = (x - cx) / Math.max(hw, 1);
+        return t < -.4 ? 'B' : t < .15 ? 'C' : 'D';
+      }
+      if (y === 0 && (x === 3 || x === 18)) return 'W';
+      return '.';
+    }); }},
+  { name:'눈사람', bg:'#3b82f6', frame:'#cbd5e1',
+    palette:{ K:'#334155', W:'#ffffff', O:'#fb923c', R:'#ef4444', S:'#dbeafe' },
+    art:[
+      '....KKKKKK....',
+      '....KKKKKK....',
+      '...KKKKKKKK...',
+      '....WWWWWW....',
+      '...WWKWWKWW...',
+      '...WWWOOWWW...',
+      '...WWWWWWWW...',
+      '....RRRRRR....',
+      '..WWRRWWWWWW..',
+      '.WWWWRWKWWWWW.',
+      '.WWWWRWWWWWWW.',
+      '.WWWWWWKWWWWW.',
+      '..WWWWWWWWWW..',
+      '.WWWWWWWWWWWW.',
+      'WWWWWWWKWWWWWW',
+      'WWWWWWWWWWWWWW',
+      '.WWWWWWWWWWWW.',
+      'SSSSSSSSSSSSSS' ]},
+  { name:'크리스마스 트리', bg:'#1e2a5a', frame:'#ffffff',
+    palette:{ Y:'#ffd23f', G:'#1f8f4e', R:'#ef4444', B:'#60a5fa', N:'#8a5a2b' },
+    art:[
+      '.......Y.......',
+      '......YYY......',
+      '.......G.......',
+      '......GGG......',
+      '.....GGRGG.....',
+      '....GGGGGGG....',
+      '.....GGGGG.....',
+      '....GBGGGGG....',
+      '...GGGGGGRGG...',
+      '..GGGGGGGGGGG..',
+      '....GGGGGGG....',
+      '...GGYGGGBGGG..',
+      '..GGGGGGGGGGGG.',
+      '.GGRGGGGYGGGRGG',
+      'GGGGGGGGGGGGGGG',
+      '......NNN......',
+      '......NNN......',
+      '....RRRRRRR....' ]},
+  { name:'선물 상자', bg:'#ffd6e5', frame:'#ef4444',
+    palette:{ R:'#f5b301', B:'#3b82f6', W:'#ffffff' },
+    art:[
+      '...RR....RR...',
+      '..R..R..R..R..',
+      '..R...RR...R..',
+      '...RRRRRRRR...',
+      'BBBBBBRRBBBBBB',
+      'BBBBBBRRBBBBBB',
+      '.BBBBBRRBBBBB.',
+      '.BWBBBRRBBBWB.',
+      '.BBBBBRRBBBBB.',
+      '.BBBWBRRBWBBB.',
+      '.BBBBBRRBBBBB.',
+      '.BWBBBRRBBBWB.',
+      '.BBBBBRRBBBBB.' ]},
 ];
 
 /* ========================= 유틸 ========================= */
+// 함수로 그리는 그림: fn(x, y)가 돌려준 문자로 w×h 그림을 만듭니다.
+function makeArt(w, h, fn){ const rows = []; for (let y = 0; y < h; y++){ let r = ''; for (let x = 0; x < w; x++) r += fn(x, y); rows.push(r); } return rows; }
 const $ = id => document.getElementById(id);
 const hexToRgb = h => [1,3,5].map(i => parseInt(h.slice(i, i + 2), 16));
 const mix = (c, t, to) => c.map((v, i) => Math.round(v + (to[i] - v) * t));
@@ -289,7 +853,15 @@ function mulberry32(a){ return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = M
   t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
 
 function buildPic(def){
-  const rows = typeof def.art === 'function' ? def.art() : def.art;
+  let rows = typeof def.art === 'function' ? def.art() : def.art;
+  // 한 색이 그림의 절반 가까이 되면 처음에 모두 어긋나게 섞을 수 없으니, 바깥에 배경을 한 줄씩 덧댐
+  for (let pad = 0; pad < 4; pad++){
+    const w0 = Math.max(...rows.map(r => r.length)), cnt = {};
+    for (const r of rows) for (let x = 0; x < w0; x++){ const ch = r[x] && def.palette[r[x]] ? def.palette[r[x]].toLowerCase() : def.bg.toLowerCase(); cnt[ch] = (cnt[ch] || 0) + 1; }
+    const top = Object.entries(cnt).sort((a, b) => b[1] - a[1])[0];
+    if (top[1] / ((rows.length + 2)*(w0 + 2)) <= .47 || top[0] === def.bg.toLowerCase()) break;
+    rows = ['.'.repeat(w0 + 2), ...rows.map(r => '.' + r.padEnd(w0, '.') + '.'), '.'.repeat(w0 + 2)];
+  }
   const w = Math.max(...rows.map(r => r.length)) + 2, h = rows.length + 2;
   const colors = [], byHex = {};
   const add = hex => { hex = hex.toLowerCase(); if (!(hex in byHex)){ byHex[hex] = colors.length; const rgb = hexToRgb(hex);
@@ -409,7 +981,7 @@ function persist(now){
 }
 function snapshot(){
   if (!G || G.done) return;
-  save.states[G.lv] = { lv:G.lv, gem:Array.from(G.gem), box:G.box.map(b => b.c), cap:G.cap, doneColors:[...G.doneColors] };
+  save.states[G.lv] = { lv:G.lv, pic:G.P.name, gem:Array.from(G.gem), box:G.box.map(b => b.c), cap:G.cap, doneColors:[...G.doneColors] };
   // 현재 도전 중인 최고 레벨과 지금 하는 레벨의 판만 보관
   for (const k of Object.keys(save.states)) if (+k !== save.level && +k !== G.lv) delete save.states[k];
   save.last = G.lv;
@@ -493,7 +1065,7 @@ function startLevel(lv, fresh){
   const P = BUILT[(lv - 1) % BUILT.length];
   const st = save.states[lv];
   if (fresh) delete save.states[lv];
-  if (!fresh && st && st.lv === lv && st.gem && st.gem.length === P.w*P.h && !st.gem.every((v, i) => v === P.target[i])){
+  if (!fresh && st && st.lv === lv && (st.pic ? st.pic === P.name : lv <= 9) && st.gem && st.gem.length === P.w*P.h && !st.gem.every((v, i) => v === P.target[i])){
     gem = Int16Array.from(st.gem); box = st.box || []; cap = clamp(st.cap || BASE_CAP, BASE_CAP, MAX_CAP);
     doneColors = st.doneColors || null;
   } else gem = scramble(P, lv);
