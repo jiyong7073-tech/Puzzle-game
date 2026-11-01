@@ -28,6 +28,7 @@
 
 이 저장소는 웹앱으로 설치할 수 있게 준비되어 있습니다(`manifest.webmanifest`, `sw.js`, `icons/`).
 GitHub Pages로 열면 게임이 자기 주소로 직접 열려서 진행 상황이 안정적으로 저장되고, 한 번 열면 오프라인에서도 실행됩니다.
+페이지에 `noindex` 표시가 있어 검색 엔진 결과에는 나오지 않고, 주소를 아는 사람만 들어올 수 있습니다.
 
 1. 저장소 **Settings → General** 맨 아래 *Danger Zone*에서 **Change visibility → Public**
 2. **Settings → Pages**에서 *Source*를 **Deploy from a branch**, Branch를 `ccr-3c5511f1-5x3i4q` / `/ (root)`로 고르고 **Save**
