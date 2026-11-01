@@ -4,6 +4,13 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <title>젬 모자이크</title>
+<link rel="manifest" href="manifest.webmanifest"><!--pwa-->
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png"><!--pwa-->
+<meta name="apple-mobile-web-app-capable" content="yes"><!--pwa-->
+<meta name="mobile-web-app-capable" content="yes"><!--pwa-->
+<meta name="apple-mobile-web-app-title" content="젬 모자이크"><!--pwa-->
+<meta name="apple-mobile-web-app-status-bar-style" content="default"><!--pwa-->
+<meta name="theme-color" content="#eef0fb"><!--pwa-->
 <style>
 :root{
   --bg:#eef0fb; --text:#2a2140; --muted:#9aa0d6; --panel:#fbf3e6; --panel-edge:#eadcc4;
@@ -1701,6 +1708,11 @@ $('gearBtn').addEventListener('click', syncSaveInfo);
 
 startLevel(save.last || save.level || 1, false);
 if (!storageOK) setTimeout(() => toast('이 브라우저는 저장이 안 돼요. 설정에서 진행 코드를 확인하세요'), 600);
+// 웹사이트로 열었을 때: 오프라인 실행 준비 + 브라우저에 저장 공간을 지우지 말라고 요청
+if (location.protocol === 'https:' || location.hostname === 'localhost'){
+  try { if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {}); } catch (e) {}
+  try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {}); } catch (e) {}
+}
 </script>
 </body>
 </html>

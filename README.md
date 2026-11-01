@@ -24,6 +24,15 @@
 - 레벨 선택(오른쪽 위 버튼): 클리어한 레벨을 골라 다시 플레이할 수 있습니다. 다시 하던 판도 따로 저장되고, 도전 중인 레벨의 진행 상황은 그대로 남습니다.
 - 라이트/다크 모드 자동 대응
 
+## 아이폰·안드로이드 홈 화면 앱으로 쓰기 (GitHub Pages)
+
+이 저장소는 웹앱으로 설치할 수 있게 준비되어 있습니다(`manifest.webmanifest`, `sw.js`, `icons/`).
+GitHub Pages로 열면 게임이 자기 주소로 직접 열려서 진행 상황이 안정적으로 저장되고, 한 번 열면 오프라인에서도 실행됩니다.
+
+1. 저장소 **Settings → General** 맨 아래 *Danger Zone*에서 **Change visibility → Public**
+2. **Settings → Pages**에서 *Source*를 **Deploy from a branch**, Branch를 `ccr-3c5511f1-5x3i4q` / `/ (root)`로 고르고 **Save**
+3. 1~2분 뒤 `https://jiyong7073-tech.github.io/Puzzle-game/` 를 아이폰 **Safari**로 열고 **공유 → 홈 화면에 추가**
+
 ## 그림 추가하기
 
 `index.html`의 `PICS` 배열 **맨 끝에** 항목을 추가하면 됩니다(중간에 넣으면 이미 깬 레벨의 그림이 바뀝니다). 한 색이 절반에 가까우면 바깥에 배경이 자동으로 덧대지고, `art`에 `makeArt(w, h, (x, y) => 문자)` 함수를 써서 패턴을 그릴 수도 있습니다. 문자 하나가 한 칸이고, `.` 은 `bg` 색으로 채워지며
