@@ -64,6 +64,9 @@ header{display:grid;grid-template-columns:56px 1fr 56px;align-items:center;
 .lvtile span{font-size:11px;font-weight:700;color:var(--muted)}
 .lvtile span.cur{color:var(--go-edge)}
 .btn:focus-visible,.gear:focus-visible,.lvtile:focus-visible{outline:3px solid var(--muted);outline-offset:2px}
+.fit{position:absolute;right:max(12px,env(safe-area-inset-right));top:8px;width:40px;height:40px;border-radius:12px;
+  background:var(--btn);box-shadow:0 3px 0 var(--btn-edge);color:#fff;display:flex;align-items:center;justify-content:center;z-index:2}
+.fit svg{width:22px;height:22px}
 @keyframes fade{from{opacity:0}}
 @keyframes pop{from{transform:scale(.85);opacity:0}}
 </style>
@@ -82,6 +85,9 @@ header{display:grid;grid-template-columns:56px 1fr 56px;align-items:center;
   <div class="stage" id="stage">
     <canvas id="cv"></canvas>
     <div class="toast" id="toast"></div>
+    <button class="fit" id="fitBtn" hidden aria-label="전체 보기">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg>
+    </button>
   </div>
 </div>
 
@@ -565,7 +571,7 @@ const PICS = [
       '....LLLLLLLL........',
       'SSSSSSSSSSSSSSSSSSSS' ]},
   { name:'튤립 꽃병', bg:'#fff4e0', frame:'#8b5cf6',
-    palette:{ R:'#ef4444', P:'#ff6fae', Y:'#ffd23f', G:'#2e9e4f', L:'#8ee05e', B:'#3b82f6', W:'#ffffff' },
+    palette:{ R:'#ef4444', P:'#ff6fae', Y:'#ffd23f', G:'#2e9e4f', L:'#8ee05e', B:'#3b82f6', W:'#ffffff', T:'#d9a066' },
     art:[
       '..R.R....P.P..',
       '..RRR....PPP..',
@@ -579,10 +585,10 @@ const PICS = [
       '.....G.GG.....',
       '......GG......',
       '..BBBBBBBBBB..',
-      '...BBBBBBBB...',
-      '...BWBBBBWB...',
-      '...BBBBBBBB...',
-      '....BBBBBB....' ]},
+      'TTTBBBBBBBBTTT',
+      'TTTBWBBBBWBTTT',
+      'TTTBBBBBBBBTTT',
+      'TTTTBBBBBBTTTT' ]},
   { name:'라테 한 잔', bg:'#ffe9c7', frame:'#6b3f22',
     palette:{ W:'#cbd5e1', C:'#ffffff', B:'#6b3f22', P:'#ff6fae', S:'#94d2ff' },
     art:[
@@ -852,8 +858,15 @@ const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 function mulberry32(a){ return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a);
   t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
 
-function buildPic(def){
+function buildPic(def, scale = 1){
   let rows = typeof def.art === 'function' ? def.art() : def.art;
+  // 레벨이 높으면 그림을 확대해서(가까운 픽셀 복제) 보석 칸 수를 늘림
+  if (scale > 1){
+    const w0 = Math.max(...rows.map(r => r.length)), h0 = rows.length;
+    const W = Math.round(w0*scale), H = Math.round(h0*scale), src = rows.map(r => r.padEnd(w0, '.'));
+    rows = Array.from({ length:H }, (_, y) => { const sy = Math.min(h0 - 1, Math.floor(y*h0/H)); let r = '';
+      for (let x = 0; x < W; x++) r += src[sy][Math.min(w0 - 1, Math.floor(x*w0/W))]; return r; });
+  }
   // 한 색이 그림의 절반 가까이 되면 처음에 모두 어긋나게 섞을 수 없으니, 바깥에 배경을 한 줄씩 덧댐
   for (let pad = 0; pad < 4; pad++){
     const w0 = Math.max(...rows.map(r => r.length)), cnt = {};
@@ -877,7 +890,129 @@ function buildPic(def){
   }
   return { name:def.name, w, h, colors, target, frame };
 }
-const BUILT = PICS.map(buildPic);
+const BUILT = PICS.map(d => buildPic(d));
+/* ---------- 46레벨부터: 레벨마다 새 그림을 자동으로 만듦 (같은 레벨은 항상 같은 그림) ---------- */
+const MASTER = ['#ef4444','#fb923c','#ffd23f','#a3e635','#22a559','#14b8a6','#7dd3fc','#3b82f6','#1e3a8a','#8b5cf6',
+  '#d946ef','#ff8fc0','#be123c','#ffffff','#fef3c7','#e0b878','#8a5a2b','#334155','#94a3b8','#a7f3d0','#d8ccff','#ffc9a8'];
+const CH = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+const ADJ = ['봄빛','여름','가을','겨울','노을','바다','숲속','보석','달빛','꽃잎','무지개','사탕','별빛','새벽','구름','열대'];
+const SPRITES = PICS.filter(d => Array.isArray(d.art) && d.art.length <= 18 && Math.max(...d.art.map(r => r.length)) <= 18);
+const near = (a, b) => { const x = hexToRgb(a), y = hexToRgb(b); return Math.hypot(x[0]-y[0], x[1]-y[1], x[2]-y[2]) < 70; };
+function pickColors(rnd, k, avoid = []){
+  const pool = MASTER.filter(c => !avoid.some(a => near(a, c))).sort(() => rnd() - .5), out = [];
+  for (const c of pool){ if (out.length >= k) break; if (!out.some(o => near(o, c))) out.push(c); }
+  while (out.length < k) out.push(MASTER[(out.length*7) % MASTER.length]);
+  return out;
+}
+function patternDef(rnd, W, H){
+  const kind = (rnd()*7) | 0, k = 4 + ((rnd()*3) | 0), cols = pickColors(rnd, k + 2);
+  const palette = {}; cols.forEach((c, i) => palette[CH[i]] = c);
+  const cx = (W - 1) / 2, cy = (H - 1) / 2, R = Math.min(W, H) / 2;
+  const pal = i => CH[((i % k) + k) % k], bgc = CH[k];
+  let fn, name;
+  if (kind === 0){            // 만다라
+    const petals = 5 + ((rnd()*6) | 0), ring = 1.7 + rnd()*1.1, amp = .8 + rnd()*1.6;
+    fn = (x, y) => { const dx = x - cx, dy = y - cy, r = Math.hypot(dx, dy); if (r > R - .2) return bgc;
+      return pal(Math.floor((r + amp*Math.cos(petals*Math.atan2(dy, dx))*Math.min(1, r / 4)) / ring)); };
+    name = '만다라';
+  } else if (kind === 1){     // 소용돌이
+    const arms = 2 + ((rnd()*5) | 0), tight = 2 + rnd()*2.5, round = rnd() < .5;
+    fn = (x, y) => { const dx = x - cx, dy = y - cy, r = Math.hypot(dx, dy); if (round && r > R - .2) return bgc;
+      return pal(Math.floor((Math.atan2(dy, dx) + Math.PI) / (2*Math.PI)*arms + r / tight)); };
+    name = '소용돌이';
+  } else if (kind === 2){     // 퀼트
+    const T = 6 + ((rnd()*4) | 0), m = (rnd()*4) | 0, alt = rnd() < .5;
+    fn = (x, y) => { const tx = Math.floor(x / T), ty = Math.floor(y / T), dx = Math.abs(x % T - (T - 1)/2), dy = Math.abs(y % T - (T - 1)/2);
+      const d = m === 0 ? dx + dy : m === 1 ? Math.hypot(dx, dy) : m === 2 ? Math.max(dx, dy) : Math.min(dx, dy)*2;
+      const band = Math.min(2, Math.floor(d / (T / 4.2))), par = alt ? (tx + ty) % 2 : tx % 2;
+      return pal(band + par*2); };
+    name = '퀼트';
+  } else if (kind === 3){     // 물결
+    const f = 1.6 + rnd()*2, a = 1 + rnd()*2.5, ph = rnd()*6, h = 2.6 + rnd()*1.6, diag = rnd() < .4;
+    fn = (x, y) => pal(Math.floor(((diag ? (x + y)/1.4 : y) + a*Math.sin(x / f + ph)) / h));
+    name = '물결';
+  } else if (kind === 4){     // 동심 무늬
+    const shape = (rnd()*4) | 0, step = 1.6 + rnd()*1.2;
+    const f = (u, v) => shape === 0 ? Math.hypot(u, v) : shape === 1 ? Math.abs(u) + Math.abs(v)
+      : shape === 2 ? Math.max(Math.abs(u), Math.abs(v)) : Math.hypot(u, v) / (0.62 + 0.38*Math.cos(5*Math.atan2(v, u)));
+    fn = (x, y) => pal(Math.floor(f(x - cx, y - cy) / step));
+    name = ['동그라미','마름모','네모','별'][shape] + ' 무늬';
+  } else if (kind === 5){     // 햇살
+    const rays = 6 + ((rnd()*8) | 0), core = 3 + rnd()*3, tw = rnd()*0.02;
+    fn = (x, y) => { const dx = x - cx, dy = y - cy, r = Math.hypot(dx, dy);
+      if (r < core) return pal(2 + (r < core / 2 ? 1 : 0));
+      return pal(Math.floor(((Math.atan2(dy, dx) + Math.PI) / (2*Math.PI) + r*tw)*rays) % 2); };
+    name = '햇살';
+  } else {                    // 체크
+    const sx = [], sy = [];
+    for (let i = 0, p = 0; p < W; i++){ const w = 3 + ((rnd()*4) | 0); for (let q = 0; q < w; q++) sx.push(i % 2); p += w; }
+    for (let i = 0, p = 0; p < H; i++){ const w = 3 + ((rnd()*4) | 0); for (let q = 0; q < w; q++) sy.push(i % 2); p += w; }
+    fn = (x, y) => pal(sx[x]*2 + sy[y]);
+    name = '체크';
+  }
+  return { name: ADJ[(rnd()*ADJ.length) | 0] + ' ' + name, bg: cols[k], frame: cols[k + 1], palette, art: makeArt(W, H, fn) };
+}
+function sceneDef(rnd, W, H){
+  let A, B;
+  for (let t = 0; t < 30; t++){
+    A = SPRITES[(rnd()*SPRITES.length) | 0]; B = SPRITES[(rnd()*SPRITES.length) | 0];
+    const wa = Math.max(...A.art.map(r => r.length)), wb = Math.max(...B.art.map(r => r.length));
+    if (A !== B && wa + wb + 3 <= W && Math.max(A.art.length, B.art.length) + 4 <= H) break;
+  }
+  const palette = {}, used = [];
+  let ci = 0;
+  const addCol = hex => { for (const [c, h] of Object.entries(palette)) if (h === hex) return c; const c = CH[ci++]; palette[c] = hex; used.push(hex); return c; };
+  const sprites = [A, B].map(d => ({ d, map: Object.fromEntries(Object.entries(d.palette).map(([k, hex]) => [k, addCol(hex)])),
+    w: Math.max(...d.art.map(r => r.length)), h: d.art.length }));
+  const [c1, c2, c3, fr] = pickColors(rnd, 4, used);
+  const b1 = addCol(c1), b2 = addCol(c2), b3 = addCol(c3);
+  const bgKind = (rnd()*4) | 0, ph = rnd()*6, horizon = Math.round(H*(0.6 + rnd()*0.15));
+  const back = (x, y) => bgKind === 0 ? (y >= horizon + Math.round(Math.sin(x / 3 + ph)) ? b2 : (y < 3 ? b3 : b1))
+    : bgKind === 1 ? (((x + (y >> 2)*2) % 4 === 0 && y % 4 === 1) ? b2 : b1)
+    : bgKind === 2 ? (((x + y) >> 2) % 2 ? b1 : b3)
+    : (y >= horizon ? ((x + y) % 5 === 0 ? b3 : b2) : b1);
+  const gap = Math.floor((W - sprites[0].w - sprites[1].w) / 3);
+  const placed = [{ s: sprites[0], x: gap, y: H - sprites[0].h - 2 }, { s: sprites[1], x: gap*2 + sprites[0].w, y: H - sprites[1].h - 2 }];
+  const art = makeArt(W, H, (x, y) => {
+    for (const p of placed){ const r = p.s.d.art[y - p.y]; const ch = r && r[x - p.x];
+      if (ch && ch !== '.' && x >= p.x && y >= p.y && p.s.map[ch]) return p.s.map[ch]; }
+    return back(x, y);
+  });
+  return { name: `${A.name} & ${B.name}`, bg: c1, frame: fr, palette, art };
+}
+function genDef(lv){
+  const side = Math.max(26, sideFor(lv));
+  for (let t = 0; t < 20; t++){
+    const rnd = mulberry32(lv*104729 + t*7919 + 11);
+    const W = side - ((rnd()*4) | 0), H = side - ((rnd()*5) | 0);
+    const def = rnd() < .5 ? sceneDef(rnd, W, H) : patternDef(rnd, W, H);
+    const P = buildPic(def), cnt = {};
+    for (const v of P.target) cnt[v] = (cnt[v] || 0) + 1;
+    if (Math.max(...Object.values(cnt)) / P.target.length <= .46 && P.colors.length >= 4 && Math.max(P.w, P.h) <= 34) return def;
+  }
+  return PICS[(lv - 1) % PICS.length];
+}
+
+/* 레벨이 오를수록 보석 칸 수를 늘림: 1~9레벨은 원래 크기, 10레벨부터 그림의 긴 변이
+   16칸에서 시작해 2레벨마다 1칸씩 커지고 최대 32칸(테두리 포함 34칸)까지. 원래보다 작게 줄이지는 않음. */
+function sideFor(lv){ return lv <= 9 ? 0 : Math.min(32, 16 + Math.floor((lv - 10) / 2)); }
+const picCache = new Map();
+function picFor(lv){
+  if (lv > PICS.length){
+    const key = 'gen@' + lv;
+    if (!picCache.has(key)) picCache.set(key, buildPic(genDef(lv)));
+    return picCache.get(key);
+  }
+  const k = (lv - 1) % PICS.length, base = BUILT[k], long = Math.max(base.w, base.h) - 2, side = sideFor(lv);
+  const scale = side > long ? side / long : 1, key = k + '@' + scale.toFixed(3);
+  if (!picCache.has(key)){
+    let P = scale === 1 ? base : buildPic(PICS[k], scale);
+    // 여백이 덧대져 34칸을 넘으면 조금씩 줄여서 휴대폰에서도 칸이 너무 작아지지 않게
+    for (let s2 = scale; scale > 1 && Math.max(P.w, P.h) > 34 && s2 > 1; ){ s2 = Math.max(1, s2*0.94); P = buildPic(PICS[k], s2); }
+    picCache.set(key, P);
+  }
+  return picCache.get(key);
+}
 const nbrs = (P, i) => { const x = i % P.w, y = (i / P.w) | 0, r = [];
   if (x > 0) r.push(i - 1); if (x < P.w - 1) r.push(i + 1); if (y > 0) r.push(i - P.w); if (y < P.h - 1) r.push(i + P.w); return r; };
 
@@ -1062,7 +1197,7 @@ function readTheme(){
 function startLevel(lv, fresh){
   let gem, box = [], cap = BASE_CAP, doneColors = null;
   lv = clamp(lv | 0, 1, save.level);
-  const P = BUILT[(lv - 1) % BUILT.length];
+  const P = picFor(lv);
   const st = save.states[lv];
   if (fresh) delete save.states[lv];
   if (!fresh && st && st.lv === lv && (st.pic ? st.pic === P.name : lv <= 9) && st.gem && st.gem.length === P.w*P.h && !st.gem.every((v, i) => v === P.target[i])){
@@ -1077,6 +1212,7 @@ function startLevel(lv, fresh){
   $('lvText').textContent = `레벨 ${lv}`;
   $('levels').classList.remove('show'); $('menu').classList.remove('show');
   $('clear').classList.remove('show');
+  view.z = 1; view.ox = 0; view.oy = 0;
   layout(); updatePct(); snapshot(); draw();
 }
 
@@ -1099,11 +1235,38 @@ function layout(){
   const pw = boxCell*BOX_COLS + pad*2, ph = boxCell*Math.ceil(G.cap / BOX_COLS) + pad*2, maxPh = boxCell*rows + pad*2;
   const boardH = ch - maxPh - 30;
   const cs = Math.min((cw - side*2) / P.w, boardH / P.h, 40);
-  Object.assign(lay, { cs, boxCell, pad, pw, ph,
-    bx: (cw - cs*P.w) / 2, by: Math.max(6, (boardH - cs*P.h) / 2),
+  Object.assign(lay, { cs0:cs, boxCell, pad, pw, ph, areaH: ch - maxPh - 14,
+    bx0: (cw - cs*P.w) / 2, by0: Math.max(6, (boardH - cs*P.h) / 2),
     px: (cw - pw) / 2, py: ch - maxPh - 8 });
+  applyView();
   draw();
 }
+/* ---------- 확대/이동 (핀치 줌) ---------- */
+const view = { z:1, ox:0, oy:0 };     // z: 확대 배율, ox/oy: 그림판 위치 이동량
+const MAX_ZOOM = 4;
+function applyView(){
+  if (!G || !lay.cs0) return;
+  const P = G.P, cs = lay.cs0*view.z, bw = cs*P.w, bh = cs*P.h;
+  let bx = lay.bx0 - (lay.cs0*P.w*(view.z - 1)) / 2 + view.ox, by = lay.by0 - (lay.cs0*P.h*(view.z - 1)) / 2 + view.oy;
+  // 그림판이 화면 밖으로 빠져나가지 않게
+  bx = bw <= cw ? (cw - bw) / 2 : clamp(bx, cw - bw - 8, 8);
+  by = bh <= lay.areaH ? Math.max(6, (lay.areaH - bh) / 2) : clamp(by, lay.areaH - bh - 6, 6);
+  view.ox = bx - (lay.bx0 - (lay.cs0*P.w*(view.z - 1)) / 2);
+  view.oy = by - (lay.by0 - (lay.cs0*P.h*(view.z - 1)) / 2);
+  lay.cs = cs; lay.bx = bx; lay.by = by;
+  $('fitBtn').hidden = view.z <= 1.01;
+}
+function zoomAt(mx, my, factor){
+  const z = clamp(view.z*factor, 1, MAX_ZOOM);
+  const u = (mx - lay.bx) / lay.cs, v = (my - lay.by) / lay.cs;      // 손가락 아래 칸 위치 유지
+  view.z = z;
+  const cs = lay.cs0*z, P = G.P;
+  view.ox = (mx - u*cs) - (lay.bx0 - (lay.cs0*P.w*(z - 1)) / 2);
+  view.oy = (my - v*cs) - (lay.by0 - (lay.cs0*P.h*(z - 1)) / 2);
+  applyView(); draw();
+}
+function panBy(dx, dy){ view.ox += dx; view.oy += dy; applyView(); draw(); }
+function resetView(){ view.z = 1; view.ox = 0; view.oy = 0; applyView(); draw(); }
 const cellCenter = i => [lay.bx + (i % G.P.w + .5)*lay.cs, lay.by + (((i / G.P.w) | 0) + .5)*lay.cs];
 const slotCenter = k => [lay.px + lay.pad + (k % BOX_COLS + .5)*lay.boxCell, lay.py + lay.pad + (((k / BOX_COLS) | 0) + .5)*lay.boxCell];
 
@@ -1210,13 +1373,51 @@ function fillAt(i){
 
 /* ---------- 입력 ---------- */
 canvas.addEventListener('contextmenu', e => e.preventDefault());
+const ptrs = new Map();
+let gesture = null;      // { x, y, moved, pinch, panning }
+const ptPos = e => { const r = canvas.getBoundingClientRect(); return { x:e.clientX - r.left, y:e.clientY - r.top }; };
 canvas.addEventListener('pointerdown', e => {
+  if (!G) return;
+  try { canvas.setPointerCapture(e.pointerId); } catch (err) {}
+  const p = ptPos(e); ptrs.set(e.pointerId, p);
+  if (ptrs.size === 2){
+    const [a, b] = [...ptrs.values()];
+    gesture = { pinch:true, d:Math.hypot(a.x - b.x, a.y - b.y), mx:(a.x + b.x)/2, my:(a.y + b.y)/2 };
+  } else if (ptrs.size === 1) gesture = { x:p.x, y:p.y, lx:p.x, ly:p.y, moved:false, onBoard: p.y < lay.areaH };
+});
+canvas.addEventListener('pointermove', e => {
+  if (!ptrs.has(e.pointerId) || !gesture) return;
+  const p = ptPos(e); ptrs.set(e.pointerId, p);
+  if (gesture.pinch && ptrs.size >= 2){
+    const [a, b] = [...ptrs.values()];
+    const d = Math.hypot(a.x - b.x, a.y - b.y), mx = (a.x + b.x)/2, my = (a.y + b.y)/2;
+    panBy(mx - gesture.mx, my - gesture.my);
+    if (gesture.d > 0) zoomAt(mx, my, d / gesture.d);
+    Object.assign(gesture, { d, mx, my });
+  } else if (!gesture.pinch){
+    if (Math.hypot(p.x - gesture.x, p.y - gesture.y) > 10) gesture.moved = true;
+    if (gesture.moved && gesture.onBoard && view.z > 1.01) panBy(p.x - gesture.lx, p.y - gesture.ly);
+    gesture.lx = p.x; gesture.ly = p.y;
+  }
+});
+function endPtr(e){
+  if (!ptrs.has(e.pointerId)) return;
+  ptrs.delete(e.pointerId);
+  if (gesture && !gesture.pinch && !gesture.moved && ptrs.size === 0) handleTap(gesture.x, gesture.y);
+  if (ptrs.size === 0) gesture = null;
+}
+canvas.addEventListener('pointerup', endPtr);
+canvas.addEventListener('pointercancel', e => { ptrs.delete(e.pointerId); if (!ptrs.size) gesture = null; });
+canvas.addEventListener('wheel', e => {
+  if (!G) return; e.preventDefault();
+  const p = ptPos(e); if (p.y < lay.areaH) zoomAt(p.x, p.y, Math.exp(-e.deltaY*0.0015));
+}, { passive:false });
+function handleTap(x, y){
   if (!G || G.done) return;
-  const r = canvas.getBoundingClientRect(), x = e.clientX - r.left, y = e.clientY - r.top;
   const P = G.P;
   // 그림판
   const gx = Math.floor((x - lay.bx) / lay.cs), gy = Math.floor((y - lay.by) / lay.cs);
-  if (gx >= 0 && gy >= 0 && gx < P.w && gy < P.h){
+  if (y < lay.areaH && gx >= 0 && gy >= 0 && gx < P.w && gy < P.h){
     const i = gy*P.w + gx;
     if (G.hidden[i]) return;
     if (misplaced(i)){
@@ -1248,7 +1449,7 @@ canvas.addEventListener('pointerdown', e => {
     if (k < G.box.length){ pickColor(G.box[k].c); return; }
   }
   if (G.sel){ G.sel = null; draw(); }
-});
+}
 
 /* ---------- 렌더링 ---------- */
 function draw(){ if (!rafId) rafId = requestAnimationFrame(render); }
@@ -1272,6 +1473,7 @@ function render(now){
   ctx.clearRect(0, 0, cw, ch);
 
   // ----- 그림판 -----
+  ctx.save(); ctx.beginPath(); ctx.rect(0, 0, cw, lay.areaH); ctx.clip();     // 확대해도 컨테이너를 가리지 않게
   ctx.save(); ctx.shadowColor = 'rgba(40,20,90,.18)'; ctx.shadowBlur = 16; ctx.shadowOffsetY = 4;
   ctx.fillStyle = P.colors[P.target[0]].cell; ctx.fillRect(lay.bx, lay.by, cs*P.w, cs*P.h); ctx.restore();
   const pulse = .5 + .5*Math.sin(now / 160);
@@ -1326,6 +1528,7 @@ function render(now){
     anim = true;
   }
 
+  ctx.restore();
   // ----- 컨테이너 -----
   ctx.save(); ctx.shadowColor = 'rgba(60,40,20,.18)'; ctx.shadowBlur = 14; ctx.shadowOffsetY = 5;
   rr(lay.px, lay.py, lay.pw, lay.ph, 18); ctx.fillStyle = theme.panel; ctx.fill(); ctx.restore();
@@ -1384,6 +1587,7 @@ function render(now){
 
 /* ---------- 클리어 ---------- */
 function celebrate(){
+  resetView();
   sfx.win(); shineAt = performance.now() + 150;
   const P = G.P;
   for (let k = 0; k < 70; k++){
@@ -1412,6 +1616,7 @@ $('gearBtn').onclick = () => { syncSound(); $('menu').classList.add('show'); };
 $('closeMenu').onclick = () => $('menu').classList.remove('show');
 $('soundBtn').onclick = () => { save.sound = !save.sound; persist(true); syncSound(); };
 $('restartBtn').onclick = () => { $('menu').classList.remove('show'); startLevel(G.lv, true); };
+$('fitBtn').onclick = resetView;
 $('nextBtn').onclick = () => startLevel(G.lv + 1, false);
 $('clearLevels').onclick = () => { $('clear').classList.remove('show'); openLevels(); };
 $('levelsBtn').onclick = () => openLevels();
@@ -1435,7 +1640,7 @@ function openLevels(){
   const grid = $('levelGrid'); grid.innerHTML = '';
   $('levelsInfo').textContent = `클리어 ${save.level - 1}개 · 지금 레벨 ${save.level}`;
   for (let n = save.level; n >= 1; n--){
-    const cleared = n < save.level, P = BUILT[(n - 1) % BUILT.length];
+    const cleared = n < save.level, P = picFor(n);
     const b = document.createElement('button'); b.className = 'lvtile' + (G && G.lv === n ? ' now' : '');
     b.appendChild(picThumb(P, cleared));
     const tag = !cleared ? '도전 중' : save.states[n] ? '이어하기' : '클리어';
