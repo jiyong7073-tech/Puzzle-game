@@ -309,38 +309,73 @@ const BUILT = PICS.map(buildPic);
 const nbrs = (P, i) => { const x = i % P.w, y = (i / P.w) | 0, r = [];
   if (x > 0) r.push(i - 1); if (x < P.w - 1) r.push(i + 1); if (y > 0) r.push(i - P.w); if (y < P.h - 1) r.push(i + P.w); return r; };
 
-/* ---------- 레벨 섞기: 모든 칸이 배경색과 다른 보석으로 시작 ----------
-   서로 다른 색 영역에서 같은 크기 덩어리를 골라 맞바꾸는 것을 칸이 남지 않을 때까지 반복합니다.
-   맞바꾼 칸은 항상 배경색과 다르고, 색별 보석 개수는 그림과 정확히 같게 유지됩니다. */
-function blobRange(lv){ return [3, Math.min(14, 6 + (lv >> 1))]; }
+/* ---------- 레벨 섞기: 원 그림의 영역 모양은 유지하고, 영역마다 다른 색을 통째로 깔기 ----------
+   1) 같은 배경색끼리 이어진 영역을 찾고, 큰 영역은 가로/세로로 반씩 잘라 큼직한 조각으로 나눕니다.
+   2) 조각마다 '자기 배경색이 아닌' 한 가지 색을 통째로 배정합니다(옆 조각과는 되도록 다른 색).
+      색별 보석 개수는 그림과 정확히 같게 맞추고, 모자라면 조각을 잘라 나눠 칠합니다.
+   3) 그래도 제자리에 남은 칸은 가까운 칸과 바꿔서, 시작할 때 맞는 칸이 하나도 없게 합니다. */
 function scramble(P, lv){
   const rnd = mulberry32(lv * 7919 + 13);
-  const [minB, maxB] = blobRange(lv);
-  const N = P.w*P.h, T = P.target, gem = Int16Array.from(T), used = new Uint8Array(N);
-  const grow = (start, size, color) => {
-    const out = [start], seen = new Set(out);
-    for (let k = 0; k < out.length && out.length < size; k++){
-      const ns = nbrs(P, out[k]).sort(() => rnd() - .5);
-      for (const j of ns){ if (out.length >= size) break;
-        if (!seen.has(j) && !used[j] && T[j] === color){ seen.add(j); out.push(j); } }
+  const N = P.w*P.h, T = P.target, C = P.colors.length;
+  const X = i => i % P.w, Y = i => (i / P.w) | 0;
+  const maxChunk = clamp(Math.round(N / (5 + 2*Math.floor((lv - 1) / BUILT.length))), 12, 200);
+  const comps = (cells, same) => {               // cells 안에서 4방향으로 이어진 덩어리들
+    const set = new Set(cells), seen = new Set(), out = [];
+    for (const s0 of cells){
+      if (seen.has(s0)) continue;
+      const g = [s0]; seen.add(s0);
+      for (let k = 0; k < g.length; k++) for (const j of nbrs(P, g[k])) if (set.has(j) && !seen.has(j) && same(j, s0)){ seen.add(j); g.push(j); }
+      out.push(g);
     }
     return out;
   };
-  const unused = () => { const r = []; for (let i = 0; i < N; i++) if (!used[i]) r.push(i); return r; };
-  // 1) 덩어리 맞바꾸기
-  for (let tries = 0; tries < 6000; tries++){
-    const free = unused(); if (!free.length) break;
-    const a = free[(rnd()*free.length) | 0], X = T[a];
-    const others = free.filter(i => T[i] !== X); if (!others.length) break;
-    const A = grow(a, minB + ((rnd()*(maxB - minB + 1)) | 0), X);
-    const b = others[(rnd()*others.length) | 0], Y = T[b];
-    const B = grow(b, A.length, Y);
-    A.length = B.length;
-    for (const c of A){ gem[c] = Y; used[c] = 1; }
-    for (const c of B){ gem[c] = X; used[c] = 1; }
+  // 1) 영역 → 조각
+  const all = []; for (let i = 0; i < N; i++) all.push(i);
+  let queue = comps(all, (j, s0) => T[j] === T[s0]), chunks = [];
+  while (queue.length){
+    const g = queue.pop();
+    if (g.length <= maxChunk){ chunks.push(g); continue; }
+    let x0 = Infinity, x1 = -1, y0 = Infinity, y1 = -1;
+    for (const c of g){ x0 = Math.min(x0, X(c)); x1 = Math.max(x1, X(c)); y0 = Math.min(y0, Y(c)); y1 = Math.max(y1, Y(c)); }
+    const vert = (x1 - x0) >= (y1 - y0), key = vert ? X : Y;
+    const vals = g.map(key).sort((a, b) => a - b), mid = vals[vals.length >> 1];
+    const A = g.filter(c => key(c) < mid), B = g.filter(c => key(c) >= mid);
+    if (!A.length || !B.length){ chunks.push(g); continue; }
+    for (const part of [A, B]) queue.push(...comps(part, () => true));
   }
-  // 2) 아직 제자리인 칸은 가까운 칸과 바꿔서 어긋나게
-  const dist = (i, j) => Math.abs(i % P.w - j % P.w) + Math.abs(((i / P.w) | 0) - ((j / P.w) | 0));
+  // 2) 조각마다 색 배정
+  const supply = new Array(C).fill(0); for (const t of T) supply[t]++;
+  const gem = new Int16Array(N).fill(-1), owner = new Int32Array(N).fill(-1);
+  chunks.forEach((g, k) => g.forEach(c => owner[c] = k));
+  const pending = chunks.map((g, k) => ({ g, k }));
+  while (pending.length){
+    pending.sort((a, b) => a.g.length - b.g.length);
+    const { g } = pending.pop(), t = T[g[0]];
+    const near = new Set();
+    for (const c of g) for (const j of nbrs(P, c)) if (gem[j] >= 0) near.add(gem[j]);
+    const cand = [];
+    for (let c = 0; c < C; c++) if (c !== t && supply[c] > 0) cand.push(c);
+    if (!cand.length){ for (const c of g) gem[c] = t; supply[t] -= g.length; continue; }   // 3)에서 해결
+    const score = c => (supply[c] >= g.length ? 1000 : 0) + (near.has(c) ? 0 : 500) + Math.min(supply[c], g.length) + rnd()*30;
+    cand.sort((a, b) => score(b) - score(a));
+    const c = cand[0];
+    if (supply[c] >= g.length){ for (const x of g) gem[x] = c; supply[c] -= g.length; continue; }
+    // 보석이 모자라면 한쪽 끝부터 이어서 칠하고, 나머지는 다시 대기열로
+    const start = g.reduce((m, x) => (X(x) + Y(x) < X(m) + Y(m) ? x : m), g[0]);
+    const take = comps(g, () => true)[0].includes(start) ? (() => {
+      const set = new Set(g), out = [start], seen = new Set(out);
+      for (let k = 0; k < out.length && out.length < supply[c]; k++)
+        for (const j of nbrs(P, out[k])) if (set.has(j) && !seen.has(j) && out.length < supply[c]){ seen.add(j); out.push(j); }
+      return out;
+    })() : g.slice(0, supply[c]);
+    const taken = new Set(take);
+    for (const x of take) gem[x] = c;
+    supply[c] -= take.length;
+    const rest = g.filter(x => !taken.has(x));
+    for (const part of comps(rest, () => true)) pending.push({ g: part });
+  }
+  // 3) 제자리에 남은 칸은 가까운 칸과 맞바꾸기
+  const dist = (i, j) => Math.abs(X(i) - X(j)) + Math.abs(Y(i) - Y(j));
   for (let i = 0; i < N; i++){
     if (gem[i] !== T[i]) continue;
     let best = -1, bd = Infinity;
@@ -349,38 +384,6 @@ function scramble(P, lv){
       const d = dist(i, j); if (d < bd){ bd = d; best = j; }
     }
     if (best >= 0){ const t = gem[i]; gem[i] = gem[best]; gem[best] = t; }
-  }
-  // 3) 대각선까지 이어진 같은 색 묶음이 너무 크면 잘라서 적당한 크기로
-  const limit = maxB + 4;
-  const n8 = i => { const x = i % P.w, y = (i / P.w) | 0, r = [];
-    for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++){ if (!dx && !dy) continue;
-      const nx = x + dx, ny = y + dy; if (nx >= 0 && ny >= 0 && nx < P.w && ny < P.h) r.push(ny*P.w + nx); }
-    return r; };
-  const groupOf = i => { const out = [i], seen = new Set(out);
-    for (let k = 0; k < out.length; k++) for (const j of n8(out[k])) if (!seen.has(j) && gem[j] === gem[i]){ seen.add(j); out.push(j); }
-    return out; };
-  const fits = (cell, color, other) => n8(cell).every(k => k === other || gem[k] !== color);
-  for (let round = 0; round < 400; round++){
-    let big = null;
-    const seen = new Uint8Array(N);
-    for (let i = 0; i < N && !big; i++){ if (seen[i]) continue; const g = groupOf(i); g.forEach(k => seen[k] = 1); if (g.length > limit) big = g; }
-    if (!big) break;
-    // 묶음 일부(limit칸)만 남기고, 남길 부분과 맞닿은 칸을 다른 곳의 보석과 바꿔서 끊는다
-    const inBig = new Set(big), keep = new Set([big[0]]), order = [big[0]];
-    for (let k = 0; k < order.length && order.length < limit; k++)
-      for (const j of n8(order[k])) if (inBig.has(j) && !keep.has(j) && order.length < limit){ keep.add(j); order.push(j); }
-    const cut = big.filter(c => !keep.has(c) && n8(c).some(k => keep.has(k)));
-    for (const i of cut){
-      const c = gem[i]; let pick = -1, loose = -1;
-      for (let t = 0; t < N; t++){
-        const j = (t + ((rnd()*N) | 0)) % N, d = gem[j];
-        if (inBig.has(j) || d === c || d === T[i] || c === T[j]) continue;
-        if (loose < 0) loose = j;
-        if (fits(i, d, j) && fits(j, c, i)){ pick = j; break; }
-      }
-      if (pick < 0) pick = loose;
-      if (pick >= 0){ gem[i] = gem[pick]; gem[pick] = c; }
-    }
   }
   return gem;
 }
