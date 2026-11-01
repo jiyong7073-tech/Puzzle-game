@@ -160,6 +160,17 @@ button{font:inherit;color:inherit;border:0;background:none;cursor:pointer}
   <div class="palette" id="palette"></div>
 </section>
 
+<div class="overlay" id="confirmOverlay">
+  <div class="dialog">
+    <h2>처음부터 할까요?</h2>
+    <p>이 그림에 붙인 보석이 모두 지워져요.</p>
+    <div class="btns">
+      <button class="btn" id="cancelReset">취소</button>
+      <button class="btn primary" id="doReset">다시 시작</button>
+    </div>
+  </div>
+</div>
+
 <div class="overlay" id="doneOverlay">
   <div class="dialog">
     <div style="font-size:40px">💎</div>
@@ -480,7 +491,7 @@ function renderGallery(){
       `<div class="name">${L.name}</div>
        <div class="bar"><i style="width:${pct}%"></i></div>
        <div class="meta"><span>${L.w}×${L.h} · ${L.colors.length}색</span><span>${pct}%</span></div>`);
-    card.onclick = () => { location.hash = 'play/' + L.id; };
+    card.onclick = () => { location.hash = 'play-' + L.id; };
     grid.appendChild(card);
   });
   $('doneCount').textContent = done; $('totalCount').textContent = BUILT.length; $('gemCount').textContent = gems.toLocaleString();
@@ -878,20 +889,23 @@ $('zoomOut').onclick = () => zoomAt(cw/2, ch/2, 1/1.35);
 $('panBtn').onclick = () => { panMode = !panMode; $('panBtn').classList.toggle('on', panMode); canvas.classList.toggle('pan', panMode); toast(panMode ? '이동 모드: 드래그로 그림을 움직여요' : '칠하기 모드'); };
 function syncSound(){ $('soundWave').style.display = save.sound ? '' : 'none'; $('soundOff').style.display = save.sound ? 'none' : ''; }
 $('soundBtn').onclick = () => { save.sound = !save.sound; persist(true); syncSound(); };
-$('resetBtn').onclick = () => {
-  if (!G || !confirm('이 그림을 처음부터 다시 할까요?')) return;
+$('resetBtn').onclick = () => { if (G) $('confirmOverlay').classList.add('show'); };
+$('cancelReset').onclick = () => $('confirmOverlay').classList.remove('show');
+$('doReset').onclick = () => {
+  $('confirmOverlay').classList.remove('show');
+  if (!G) return;
   delete save.progress[G.L.id]; persist(true); openLevel(G.L.id);
 };
 $('toGallery').onclick = () => { $('doneOverlay').classList.remove('show'); location.hash = ''; };
 $('nextBtn').onclick = () => {
   $('doneOverlay').classList.remove('show');
   const next = BUILT[(G.idx + 1) % BUILT.length];
-  location.hash = 'play/' + next.id;
+  location.hash = 'play-' + next.id;
 };
 
 /* ---------- 라우팅 ---------- */
 function route(){
-  const m = location.hash.match(/^#play\/(.+)$/);
+  const m = location.hash.match(/^#play-([a-z0-9-]+)$/);
   if (m) openLevel(decodeURIComponent(m[1]));
   else { persist(true); G = null; $('doneOverlay').classList.remove('show'); showScreen('gallery'); renderGallery(); }
 }
