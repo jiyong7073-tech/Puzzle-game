@@ -17,6 +17,7 @@
   --bg:#eef0fb; --text:#2a2140; --muted:#9aa0d6; --panel:#fbf3e6; --panel-edge:#eadcc4;
   --slot:#f1e6d3; --btn:#f7d9b9; --btn-edge:#d9a877; --go:#7ed957; --go-edge:#4fae3a;
   --card:#ffffff; --shadow:0 6px 20px rgba(60,40,120,.14);
+  --well:#e6c99b; --well-deep:#c9a06a; --well-edge:#b88a52; --well-lip:#fffaf0;
   color-scheme:light;
 }
 @media (prefers-color-scheme: dark){
@@ -24,12 +25,14 @@
     --bg:#17182b; --text:#eeeaf8; --muted:#8f95cc; --panel:#2a2539; --panel-edge:#3a3350;
     --slot:#352e47; --btn:#5a4632; --btn-edge:#3d2f22; --go:#5fbf43; --go-edge:#3a8a2a;
     --card:#241f33; --shadow:0 6px 20px rgba(0,0,0,.45); color-scheme:dark;
+    --well:#463b63; --well-deep:#211b33; --well-edge:#6b5d96; --well-lip:#4f4470;
   }
 }
 :root[data-theme="dark"]{
   --bg:#17182b; --text:#eeeaf8; --muted:#8f95cc; --panel:#2a2539; --panel-edge:#3a3350;
   --slot:#352e47; --btn:#5a4632; --btn-edge:#3d2f22; --go:#5fbf43; --go-edge:#3a8a2a;
   --card:#241f33; --shadow:0 6px 20px rgba(0,0,0,.45); color-scheme:dark;
+  --well:#463b63; --well-deep:#211b33; --well-edge:#6b5d96; --well-lip:#4f4470;
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;height:100%;background:var(--bg);color:var(--text);overscroll-behavior:none;
@@ -1214,7 +1217,8 @@ let particles = [], shineAt = 0, lastT = 0, rafId = 0, celebrated = false;
 
 function readTheme(){
   const cs = getComputedStyle(document.documentElement), v = n => cs.getPropertyValue(n).trim();
-  theme = { panel:v('--panel'), edge:v('--panel-edge'), slot:v('--slot'), text:v('--text') };
+  theme = { panel:v('--panel'), edge:v('--panel-edge'), slot:v('--slot'), text:v('--text'),
+    well:v('--well'), wellDeep:v('--well-deep'), wellEdge:v('--well-edge'), wellLip:v('--well-lip') };
 }
 
 function startLevel(lv, fresh){
@@ -1558,12 +1562,20 @@ function render(now){
   rr(lay.px, lay.py, lay.pw, lay.ph, 18); ctx.lineWidth = 2; ctx.strokeStyle = theme.edge; ctx.stroke();
   const rw = G.reward && now - G.reward.t0 < 1400 ? (now - G.reward.t0) / 1400 : 0;
   if (rw) anim = true;
+  // 빈 칸: 움푹 파인 8각형 홈 (위쪽은 그늘, 아래쪽 가장자리는 밝게)
+  const octPath = (x, y, r) => { ctx.beginPath();
+    for (let q = 0; q < 8; q++){ const a = Math.PI/8 + q*Math.PI/4; const px = x + Math.cos(a)*r, py = y + Math.sin(a)*r; q ? ctx.lineTo(px, py) : ctx.moveTo(px, py); }
+    ctx.closePath(); };
+  const wr = bc*.42 / Math.cos(Math.PI/8);
   for (let k = G.box.length; k < G.cap; k++){
     const [sx, sy] = slotCenter(k);
-    rr(sx - bc*.38, sy - bc*.38, bc*.76, bc*.76, bc*.22);
-    if (k >= G.cap) break;
-    ctx.fillStyle = theme.slot; ctx.fill();
-    if (rw && k >= G.cap - REWARD){ ctx.lineWidth = 2.5; ctx.strokeStyle = `rgba(126,217,87,${1 - rw})`; ctx.stroke(); }
+    octPath(sx, sy + bc*.035, wr); ctx.fillStyle = theme.wellLip; ctx.fill();          // 아래쪽 밝은 테두리
+    octPath(sx, sy, wr);
+    const wg = ctx.createLinearGradient(0, sy - wr, 0, sy + wr);
+    wg.addColorStop(0, theme.wellDeep); wg.addColorStop(.45, theme.well); wg.addColorStop(1, theme.well);
+    ctx.fillStyle = wg; ctx.fill();
+    ctx.lineWidth = Math.max(1, bc*.04); ctx.strokeStyle = theme.wellEdge; ctx.stroke();
+    if (rw && k >= G.cap - REWARD){ ctx.lineWidth = 3; ctx.strokeStyle = `rgba(126,217,87,${1 - rw})`; ctx.stroke(); }
   }
   const flying = [];
   G.box.forEach((b, k) => {

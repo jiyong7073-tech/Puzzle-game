@@ -1,5 +1,5 @@
 // 젬 모자이크 오프라인 캐시: 게임 화면은 항상 최신 버전을 먼저 받아오고, 인터넷이 없으면 저장해 둔 버전으로 실행합니다.
-const CACHE = 'gem-mosaic-v3';
+const CACHE = 'gem-mosaic-v4';
 const FILES = ['./', './index.html', './manifest.webmanifest', './icons/icon-192.png', './icons/icon-512.png', './icons/apple-touch-icon.png'];
 
 self.addEventListener('install', e => {
