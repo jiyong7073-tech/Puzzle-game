@@ -309,16 +309,14 @@ const BUILT = PICS.map(buildPic);
 const nbrs = (P, i) => { const x = i % P.w, y = (i / P.w) | 0, r = [];
   if (x > 0) r.push(i - 1); if (x < P.w - 1) r.push(i + 1); if (y > 0) r.push(i - P.w); if (y < P.h - 1) r.push(i + P.w); return r; };
 
-/* ---------- 레벨 섞기: 서로 다른 색 영역의 같은 크기 덩어리를 맞바꿈 ---------- */
-function difficulty(lv){
-  return { frac: Math.min(0.62, 0.26 + 0.04*(lv - 1)), maxBlob: Math.min(14, 4 + lv) };
-}
+/* ---------- 레벨 섞기: 모든 칸이 배경색과 다른 보석으로 시작 ----------
+   서로 다른 색 영역에서 같은 크기 덩어리를 골라 맞바꾸는 것을 칸이 남지 않을 때까지 반복합니다.
+   맞바꾼 칸은 항상 배경색과 다르고, 색별 보석 개수는 그림과 정확히 같게 유지됩니다. */
+function blobRange(lv){ return [3, Math.min(14, 6 + (lv >> 1))]; }
 function scramble(P, lv){
   const rnd = mulberry32(lv * 7919 + 13);
-  const { frac, maxBlob } = difficulty(lv);
-  const N = P.w*P.h, T = P.target, gem = Int16Array.from(T), used = Uint8Array.from(P.frame);
-  let free = 0; for (let i = 0; i < N; i++) if (!used[i]) free++;
-  const goal = Math.round(free * frac);
+  const [minB, maxB] = blobRange(lv);
+  const N = P.w*P.h, T = P.target, gem = Int16Array.from(T), used = new Uint8Array(N);
   const grow = (start, size, color) => {
     const out = [start], seen = new Set(out);
     for (let k = 0; k < out.length && out.length < size; k++){
@@ -328,21 +326,61 @@ function scramble(P, lv){
     }
     return out;
   };
-  let done = 0;
-  for (let tries = 0; done < goal && tries < 4000; tries++){
-    let a = -1;
-    for (let k = 0; k < 40; k++){ const c = (rnd()*N) | 0; if (!used[c]){ a = c; break; } }
-    if (a < 0) break;
-    const X = T[a];
-    const A = grow(a, 2 + ((rnd()*(maxBlob - 1)) | 0), X);
-    const pool = []; for (let i = 0; i < N; i++) if (!used[i] && T[i] !== X && !A.includes(i)) pool.push(i);
-    if (!pool.length) continue;
-    const b = pool[(rnd()*pool.length) | 0], Y = T[b];
+  const unused = () => { const r = []; for (let i = 0; i < N; i++) if (!used[i]) r.push(i); return r; };
+  // 1) 덩어리 맞바꾸기
+  for (let tries = 0; tries < 6000; tries++){
+    const free = unused(); if (!free.length) break;
+    const a = free[(rnd()*free.length) | 0], X = T[a];
+    const others = free.filter(i => T[i] !== X); if (!others.length) break;
+    const A = grow(a, minB + ((rnd()*(maxB - minB + 1)) | 0), X);
+    const b = others[(rnd()*others.length) | 0], Y = T[b];
     const B = grow(b, A.length, Y);
     A.length = B.length;
     for (const c of A){ gem[c] = Y; used[c] = 1; }
     for (const c of B){ gem[c] = X; used[c] = 1; }
-    done += A.length * 2;
+  }
+  // 2) 아직 제자리인 칸은 가까운 칸과 바꿔서 어긋나게
+  const dist = (i, j) => Math.abs(i % P.w - j % P.w) + Math.abs(((i / P.w) | 0) - ((j / P.w) | 0));
+  for (let i = 0; i < N; i++){
+    if (gem[i] !== T[i]) continue;
+    let best = -1, bd = Infinity;
+    for (let j = 0; j < N; j++){
+      if (j === i || gem[j] === T[i] || gem[i] === T[j]) continue;
+      const d = dist(i, j); if (d < bd){ bd = d; best = j; }
+    }
+    if (best >= 0){ const t = gem[i]; gem[i] = gem[best]; gem[best] = t; }
+  }
+  // 3) 대각선까지 이어진 같은 색 묶음이 너무 크면 잘라서 적당한 크기로
+  const limit = maxB + 4;
+  const n8 = i => { const x = i % P.w, y = (i / P.w) | 0, r = [];
+    for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++){ if (!dx && !dy) continue;
+      const nx = x + dx, ny = y + dy; if (nx >= 0 && ny >= 0 && nx < P.w && ny < P.h) r.push(ny*P.w + nx); }
+    return r; };
+  const groupOf = i => { const out = [i], seen = new Set(out);
+    for (let k = 0; k < out.length; k++) for (const j of n8(out[k])) if (!seen.has(j) && gem[j] === gem[i]){ seen.add(j); out.push(j); }
+    return out; };
+  const fits = (cell, color, other) => n8(cell).every(k => k === other || gem[k] !== color);
+  for (let round = 0; round < 400; round++){
+    let big = null;
+    const seen = new Uint8Array(N);
+    for (let i = 0; i < N && !big; i++){ if (seen[i]) continue; const g = groupOf(i); g.forEach(k => seen[k] = 1); if (g.length > limit) big = g; }
+    if (!big) break;
+    // 묶음 일부(limit칸)만 남기고, 남길 부분과 맞닿은 칸을 다른 곳의 보석과 바꿔서 끊는다
+    const inBig = new Set(big), keep = new Set([big[0]]), order = [big[0]];
+    for (let k = 0; k < order.length && order.length < limit; k++)
+      for (const j of n8(order[k])) if (inBig.has(j) && !keep.has(j) && order.length < limit){ keep.add(j); order.push(j); }
+    const cut = big.filter(c => !keep.has(c) && n8(c).some(k => keep.has(k)));
+    for (const i of cut){
+      const c = gem[i]; let pick = -1, loose = -1;
+      for (let t = 0; t < N; t++){
+        const j = (t + ((rnd()*N) | 0)) % N, d = gem[j];
+        if (inBig.has(j) || d === c || d === T[i] || c === T[j]) continue;
+        if (loose < 0) loose = j;
+        if (fits(i, d, j) && fits(j, c, i)){ pick = j; break; }
+      }
+      if (pick < 0) pick = loose;
+      if (pick >= 0){ gem[i] = gem[pick]; gem[pick] = c; }
+    }
   }
   return gem;
 }
@@ -469,7 +507,7 @@ function startLevel(lv, fresh){
 
 function updatePct(){
   let ok = 0, all = 0;
-  for (let i = 0; i < G.gem.length; i++){ if (G.P.frame[i]) continue; all++; if (G.gem[i] === G.P.target[i]) ok++; }
+  for (let i = 0; i < G.gem.length; i++){ all++; if (G.gem[i] === G.P.target[i]) ok++; }
   $('pctText').textContent = `${G.P.name} · ${Math.floor(ok / all * 100)}%`;
 }
 
