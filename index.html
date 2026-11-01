@@ -613,7 +613,9 @@ function fillAt(i){
       flyers.push({ c, x, y, cell, start: now + k*22, from: lay.cs*.92, d0: 0 });
       G.gem[src[k]] = -1; G.gem[cell] = c; G.hidden[cell] = 1;
     }
-    G.sel = null;
+    // 다 못 옮기고 남은 보석은 선택된 채로 두어 바로 다른 빈칸을 탭할 수 있게
+    const rest = src.slice(n);
+    G.sel = rest.length ? { src:'board', c, t0:G.sel.t0, cells:rest } : null;
   }
   sfx.drop(n);
   for (let k = 0; k < P.colors.length; k++){
@@ -663,6 +665,9 @@ canvas.addEventListener('pointerdown', e => {
     const s = G.sel; G.sel = null;
     const first = s.cells.find(j => misplaced(j) && G.gem[j] === s.c);
     if (first !== undefined) liftGroup(first);
+    // 보관함이 차서 일부만 내려갔으면 남은 보석은 선택 유지
+    const rest = s.cells.filter(j => misplaced(j) && G.gem[j] === s.c);
+    if (rest.length){ G.sel = { ...s, cells:rest }; draw(); }
     return;
   }
   const kx = Math.floor((x - lay.px - lay.pad) / lay.boxCell), ky = Math.floor((y - lay.py - lay.pad) / lay.boxCell);
